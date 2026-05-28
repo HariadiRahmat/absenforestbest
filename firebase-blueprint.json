@@ -1,0 +1,77 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Scout user profile containing role and administrative tracking data.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Unique identifier matching Firebase Auth UID." },
+        "nama": { "type": "string", "description": "Full name of the member." },
+        "email": { "type": "string", "description": "Email address of the member." },
+        "kelas": { "type": "string", "description": "School class of the member." },
+        "regu": { "type": "string", "description": "Scout squad/patrol name (e.g. Eagle, Orchid)." },
+        "status": { "type": "string", "enum": ["aktif", "nonaktif"], "description": "Active or inactive status." },
+        "role": { "type": "string", "enum": ["admin", "anggota"], "description": "User clearance level." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Profile registration time." }
+      },
+      "required": ["userId", "nama", "email", "kelas", "regu", "status", "role", "createdAt"]
+    },
+    "Attendance": {
+      "title": "Attendance",
+      "description": "Daily attendance logs signed via unique QR codes and verified by locations.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "UID of the attending member." },
+        "nama": { "type": "string", "description": "Full name of the member." },
+        "tanggal": { "type": "string", "format": "date", "description": "Date code of attendance (YYYY-MM-DD)." },
+        "timestamp": { "type": "string", "format": "date-time", "description": "Exact check-in timestamp." },
+        "latitude": { "type": "number", "description": "GPS check-in Latitude location." },
+        "longitude": { "type": "number", "description": "GPS check-in Longitude location." },
+        "status": { "type": "string", "enum": ["hadir", "tidak hadir"], "description": "Attendance status." },
+        "qrToken": { "type": "string", "description": "Active dynamic QR Code token used during signature." }
+      },
+      "required": ["userId", "nama", "tanggal", "timestamp", "status", "qrToken"]
+    },
+    "QRCode": {
+      "title": "QRCode",
+      "description": "Dynamic daily single-use QR Code configurations rotated daily.",
+      "type": "object",
+      "properties": {
+        "date": { "type": "string", "format": "date", "description": "Date code (YYYY-MM-DD) for which the code is valid." },
+        "token": { "type": "string", "description": "Cryptographically high-entropy random sequence token." },
+        "active": { "type": "boolean", "description": "State status representing if the QR is redeemable." },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Generation timestamp." },
+        "expiresAt": { "type": "string", "format": "date-time", "description": "Daily midnight expiry schedule." }
+      },
+      "required": ["date", "token", "active", "createdAt", "expiresAt"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Global application configuration parameter store.",
+      "type": "object",
+      "properties": {
+        "key": { "type": "string", "description": "Setting parameter identifier." },
+        "value": { "type": "string", "description": "Setting parameter payload contents." }
+      },
+      "required": ["key", "value"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Secure profiles path of scouts keyed by Auth identification."
+    },
+    "/attendance/{attendanceId}": {
+      "schema": "Attendance",
+      "description": "Daily scout logs keyed by composite id Date_UserId."
+    },
+    "/qr_codes/{date}": {
+      "schema": "QRCode",
+      "description": "Daily active tokens keyed by their active Date (YYYY-MM-DD)."
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "Global constants configurations path."
+    }
+  }
+}

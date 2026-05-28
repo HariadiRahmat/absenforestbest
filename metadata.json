@@ -1,0 +1,6 @@
+{
+  "name": "ForestBest Scout",
+  "description": "Sistem absensi digital QR Code untuk pramuka berbasis mobile-first, realtime, dan aman.",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

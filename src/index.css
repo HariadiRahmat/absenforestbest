@@ -1,0 +1,62 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --color-bento-bg: #F3F6F3;
+  --color-bento-text: #1A2F1A;
+  --color-bento-muted: #6A7B6A;
+  --color-bento-primary: #2D5A27;
+  --color-bento-primary-hover: #1E3F1A;
+  --color-bento-border: #E0E7E0;
+  --color-bento-border-green: #A8C69F;
+  --color-bento-highlight: #D1E2CF;
+  --color-bento-soft: #F0F4EF;
+  --color-bento-item: #F9FBF9;
+}
+
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 20s linear infinite;
+}
+
+/* Custom visual styles for smooth layout transition */
+html, body {
+  font-family: var(--font-sans);
+  background-color: #F3F6F3; /* Bento Grid backdrop */
+  color: #1A2F1A; /* Bento Grid deep charcoal/dark forest */
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar styling for list feeds */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
