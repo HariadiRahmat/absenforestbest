@@ -168,9 +168,10 @@ export function QRScanner({
   // Build payload — semua field sesuai rules
   // -------------------------------------------------------------------------
   function buildPayload(token: string): AttendancePayload {
+    const safeName = (memberName ?? '').slice(0, 100); // guard jika prop undefined/null
     return {
-      userId,                          // harus == request.auth.uid di parent
-      nama: memberName.slice(0, 100),  // max 100 char
+      userId,
+      nama: safeName,                  // max 100 char
       tanggal: getTodayString(),       // YYYY-MM-DD, tepat 10 char
       qrToken: token.trim().slice(0, 100), // max 100 char
       status: 'hadir',                 // rules mewajibkan nilai ini
