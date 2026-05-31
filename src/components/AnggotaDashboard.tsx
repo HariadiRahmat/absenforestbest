@@ -11,7 +11,9 @@ import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp, get
 import { verifyActiveCheckin } from '../lib/activeCheckin';
 import { AttendanceRecord, AttendanceStatus, OperationType } from '../types';
 import { QRScanner, AttendancePayload } from './QRScanner';
-import { getAttendanceErrorMessage } from '../lib/attendanceErrors';
+import { parseAttendanceError } from '../lib/attendanceErrors';
+import type { FriendlyError } from './ui/Alert';
+import { Alert } from './ui/Alert';
 import { getTodayStr } from '../lib/dateUtils';
 import {
   Compass,
@@ -25,10 +27,7 @@ import {
   Edit2,
   Save,
   QrCode,
-  Users,
-  AlertTriangle,
   Flame,
-  ChevronRight
 } from 'lucide-react';
 
 export function AnggotaDashboard() {
@@ -39,8 +38,7 @@ export function AnggotaDashboard() {
   const [history, setHistory] = useState<AttendanceRecord[]>([]);
   const [todayRecord, setTodayRecord] = useState<AttendanceRecord | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
-  const [scanError, setScanError] = useState<string | null>(null);
-  const [scanSuccess, setScanSuccess] = useState<boolean>(false);
+  const [scanError, setScanError] = useState<FriendlyError | null>(null);
   
   // Profile edit states
   const [isEditingProfile, setIsEditingProfile] = useState(false);
@@ -87,7 +85,6 @@ export function AnggotaDashboard() {
     if (!currentUser || !userProfile) return;
     setCheckingIn(true);
     setScanError(null);
-    setScanSuccess(false);
 
     try {
       const compositeId = `${payload.tanggal}_${currentUser.uid}`;
@@ -112,10 +109,9 @@ export function AnggotaDashboard() {
       };
 
       await setDoc(recordRef, newRecord);
-      setScanSuccess(true);
     } catch (err: unknown) {
       console.warn('Scan check-in registration failed:', err);
-      setScanError(getAttendanceErrorMessage(err));
+      setScanError(parseAttendanceError(err));
     } finally {
       setCheckingIn(false);
     }
@@ -155,49 +151,45 @@ export function AnggotaDashboard() {
 
   return (
     <div id="scout-anggota-dashboard-wrapper" className="min-h-screen bg-bento-bg text-bento-text pb-20">
-      
-      {/* Immersive Bento Page Header & Stats Row */}
       <div className="max-w-4xl mx-auto px-4 pt-6">
-        {/* Top Header Card */}
-        <header className="flex flex-row justify-between items-center bg-white px-8 py-6 rounded-[24px] shadow-sm border border-bento-border gap-4">
+        <header className="scout-card flex flex-row justify-between items-center px-6 py-5 gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-bento-primary rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm">
-              <Compass className="w-5 h-5 text-bento-highlight animate-spin-slow" />
+            <div className="w-11 h-11 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
+              <Compass className="w-5 h-5 text-bento-dark" />
             </div>
             <div>
-              <span className="text-[10px] font-extrabold tracking-wider text-bento-muted font-mono uppercase">Anggota Aktif</span>
-              <h1 className="text-lg font-extrabold tracking-tight font-sans text-bento-text">{userProfile?.nama}</h1>
-              <p className="text-xs text-bento-muted font-sans mt-0.5">Regu {userProfile?.regu} • Kelas {userProfile?.kelas}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Halo,</p>
+              <h1 className="text-xl font-bold text-bento-text">{userProfile?.nama}</h1>
+              <p className="text-sm text-bento-muted mt-0.5">Regu {userProfile?.regu} · Kelas {userProfile?.kelas}</p>
             </div>
           </div>
-          <button 
+          <button
             id="scout-btn-logout-header"
             onClick={logout}
-            className="py-2 px-4 bg-bento-soft hover:bg-bento-border/50 text-bento-text rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5 cursor-pointer border border-bento-border shadow-sm"
+            className="scout-btn-secondary text-xs py-2.5 px-4"
           >
             <LogOut className="w-4 h-4" />
-            Keluar Sesi
+            Keluar
           </button>
         </header>
 
-        {/* Quick Streak Stats card */}
-        <div className="grid grid-cols-2 gap-4 mt-6">
-          <div className="bg-bento-highlight rounded-[24px] p-5 flex items-center gap-3.5 border border-bento-border-green shadow-sm">
-            <div className="bg-white/50 w-10 h-10 rounded-full flex items-center justify-center border border-bento-border-green/20 shrink-0">
-              <Flame className="w-5 h-5 text-bento-primary fill-bento-primary/30" />
+        <div className="grid grid-cols-2 gap-4 mt-5">
+          <div className="scout-card p-5 flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-bento-accent flex items-center justify-center shrink-0">
+              <Flame className="w-5 h-5 text-bento-dark" />
             </div>
             <div>
-              <div className="text-[10px] font-bold uppercase text-bento-primary tracking-wider">Kehadiran Aktif</div>
-              <div className="text-xl font-black text-bento-text mt-0.5">{streakCount} Kali</div>
+              <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Streak Kehadiran</p>
+              <p className="text-2xl font-bold text-bento-text mt-0.5">{streakCount} hari</p>
             </div>
           </div>
-          <div className="bg-white rounded-[24px] p-5 flex items-center gap-3.5 border border-bento-border shadow-sm">
-            <div className="bg-bento-soft w-10 h-10 rounded-full flex items-center justify-center shrink-0">
-              <Calendar className="w-5 h-5 text-bento-muted" />
+          <div className="scout-card p-5 flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-2xl bg-bento-highlight flex items-center justify-center shrink-0">
+              <Calendar className="w-5 h-5 text-bento-primary" />
             </div>
             <div>
-              <div className="text-[10px] font-bold uppercase text-bento-muted tracking-wider">Tanggal Hari Ini</div>
-              <div className="text-xs font-bold text-bento-text mt-0.5">{todayStr}</div>
+              <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Hari Ini</p>
+              <p className="text-sm font-bold text-bento-text mt-0.5">{todayStr}</p>
             </div>
           </div>
         </div>
@@ -206,44 +198,24 @@ export function AnggotaDashboard() {
       {/* Main Dashboard Interactive Scaffold */}
       <div className="max-w-4xl mx-auto px-4 mt-6">
         
-        {/* Navigation Tabs */}
-        <div className="bg-white p-1.5 rounded-[20px] border border-bento-border flex gap-2 shadow-sm mb-6">
-          <button
-            id="tab-btn-absen"
-            onClick={() => setActiveTab('absen')}
-            className={`flex-1 py-3 text-xs font-bold font-sans rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              activeTab === 'absen'
-                ? 'bg-bento-primary text-white shadow-sm'
-                : 'text-bento-muted hover:text-bento-text hover:bg-bento-soft/80'
-            }`}
-          >
-            <QrCode className="w-4 h-4" />
-            Isi Absensi
-          </button>
-          <button
-            id="tab-btn-riwayat"
-            onClick={() => setActiveTab('riwayat')}
-            className={`flex-1 py-3 text-xs font-bold font-sans rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              activeTab === 'riwayat'
-                ? 'bg-bento-primary text-white shadow-sm'
-                : 'text-bento-muted hover:text-bento-text hover:bg-bento-soft/80'
-            }`}
-          >
-            <History className="w-4 h-4" />
-            Riwayat Pribadi
-          </button>
-          <button
-            id="tab-btn-profil"
-            onClick={() => setActiveTab('profil')}
-            className={`flex-1 py-3 text-xs font-bold font-sans rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              activeTab === 'profil'
-                ? 'bg-bento-primary text-white shadow-sm'
-                : 'text-bento-muted hover:text-bento-text hover:bg-bento-soft/80'
-            }`}
-          >
-            <User className="w-4 h-4" />
-            Ubah Profil
-          </button>
+        <div className="scout-card p-2 flex flex-wrap gap-1 mb-6">
+          {([
+            { id: 'tab-btn-absen', key: 'absen' as const, label: 'Absensi', icon: QrCode },
+            { id: 'tab-btn-riwayat', key: 'riwayat' as const, label: 'Riwayat', icon: History },
+            { id: 'tab-btn-profil', key: 'profil' as const, label: 'Profil', icon: User },
+          ]).map(({ id, key, label, icon: Icon }) => (
+            <button
+              key={key}
+              id={id}
+              onClick={() => setActiveTab(key)}
+              className={`scout-nav-pill flex-1 justify-center ${
+                activeTab === key ? 'scout-nav-pill-active' : 'scout-nav-pill-inactive'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Tab content cards container */}
@@ -254,40 +226,38 @@ export function AnggotaDashboard() {
               
               {/* Today's Presence Status Callout */}
               {todayRecord ? (
-                <div id="status-today-confirmed" className="bg-emerald-50 border-2 border-emerald-500/30 rounded-3xl p-6 text-center shadow-sm flex flex-col items-center">
-                  <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-3">
-                    <CheckCircle className="w-9 h-9 text-emerald-600 animate-bounce" />
+                <div id="status-today-confirmed" className="scout-card p-6 text-center flex flex-col items-center">
+                  <div className="w-16 h-16 bg-bento-accent rounded-[20px] flex items-center justify-center mb-4">
+                    <CheckCircle className="w-9 h-9 text-bento-dark" />
                   </div>
-                  <h3 className="text-lg font-extrabold text-emerald-950 font-sans">
-                    Absensi Terdaftar Hari Ini!
-                  </h3>
-                  <p className="text-xs text-emerald-800 mt-1 max-w-xs leading-normal">
-                    Laporan kehadiran Anda sukses divalidasi pembina. Silakan ikuti kegiatan kepramukaan dengan penuh semangat!
+                  <h3 className="text-lg font-bold text-bento-text">Sudah absen hari ini</h3>
+                  <p className="text-sm text-bento-muted mt-1 max-w-xs leading-relaxed">
+                    Kehadiran Anda sudah tercatat. Selamat mengikuti kegiatan pramuka!
                   </p>
 
-                  <div className="grid grid-cols-2 gap-4 w-full mt-6 pt-6 border-t border-emerald-200/50">
+                  <div className="grid grid-cols-2 gap-4 w-full mt-6 pt-6 border-t border-bento-border">
                     <div className="text-center">
-                      <span className="text-[10px] text-emerald-700 uppercase font-mono font-bold tracking-wider">Jam Masuk</span>
-                      <div className="font-sans font-bold text-sm text-emerald-900 mt-0.5 flex items-center justify-center gap-1">
+                      <p className="text-[11px] text-bento-muted uppercase font-semibold tracking-wide">Jam Masuk</p>
+                      <p className="font-bold text-sm text-bento-text mt-1 flex items-center justify-center gap-1">
                         <Clock className="w-3.5 h-3.5" />
                         {todayRecord.timestamp?.seconds ? new Date(todayRecord.timestamp.seconds * 1000).toLocaleTimeString('id-ID', { hour12: false }) : '--:--'}
-                      </div>
+                      </p>
                     </div>
                     <div className="text-center">
-                      <span className="text-[10px] text-emerald-700 uppercase font-mono font-bold tracking-wider">Lokasi</span>
-                      <div className="font-sans font-bold text-xs text-emerald-950 mt-0.5 flex items-center justify-center gap-1">
+                      <p className="text-[11px] text-bento-muted uppercase font-semibold tracking-wide">Lokasi</p>
+                      <p className="font-bold text-sm text-bento-text mt-1 flex items-center justify-center gap-1">
                         <MapPin className="w-3.5 h-3.5 shrink-0" />
                         {todayRecord.latitude ? (
                           <a
                             href={`https://maps.google.com/?q=${todayRecord.latitude},${todayRecord.longitude}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="underline text-emerald-800 hover:text-emerald-900"
+                            className="text-bento-primary hover:underline"
                           >
-                            Terkunci (GPS)
+                            GPS tercatat
                           </a>
                         ) : 'Tanpa GPS'}
-                      </div>
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -297,40 +267,37 @@ export function AnggotaDashboard() {
                   userId={currentUser!.uid}
                   memberName={userProfile!.nama}
                   loading={checkingIn}
-                  errorMsg={scanError}
+                  error={scanError}
                 />
               )}
 
-              {/* Attendance quick reminder instructions */}
-              <div className="bg-amber-50 border border-amber-200/50 p-4 rounded-2xl flex gap-3">
-                <AlertTriangle className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-amber-900">Peraturan Check-In</h4>
-                  <ul className="text-[11px] text-amber-800 list-disc list-inside mt-1 space-y-1">
-                    <li>QR Code yang discan harus milik Pembina yang aktif hari ini.</li>
-                    <li>Sistem mendeteksi letak koordinat GPS Anda untuk divalidasi.</li>
-                    <li>Satu anggota pramuka hanya diperbolehkan melakukan satu absensi per hari.</li>
-                  </ul>
-                </div>
-              </div>
+              <Alert
+                variant="info"
+                title="Panduan absensi"
+                tips={[
+                  'Scan QR yang aktif di dashboard Pembina hari ini.',
+                  'Izinkan akses GPS untuk verifikasi lokasi.',
+                  'Satu absensi per hari per anggota.',
+                ]}
+              />
             </div>
           )}
 
           {/* TAB 2: RIWAYAT KEHADIRAN */}
           {activeTab === 'riwayat' && (
-            <div className="bg-white rounded-[32px] border border-bento-border p-6 shadow-sm">
-              <div className="flex items-center gap-2 mb-4">
+            <div className="scout-card p-6">
+              <div className="flex items-center gap-2 mb-5">
                 <History className="w-5 h-5 text-bento-primary" />
-                <h3 className="font-sans text-base font-extrabold text-bento-text">Riwayat Check-In Pribadi</h3>
+                <h3 className="text-base font-bold text-bento-text">Riwayat Kehadiran</h3>
               </div>
 
               {history.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-xs">
-                  <Calendar className="w-12 h-12 stroke-1 mx-auto mb-2 text-slate-300" />
-                  Belum ada catatan kehadiran pramuka yang tersimpan.
+                <div className="text-center py-12 text-bento-muted text-sm">
+                  <Calendar className="w-12 h-12 stroke-1 mx-auto mb-2 opacity-40" />
+                  Belum ada catatan kehadiran.
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {history.map((record) => {
                     const checkTime = record.timestamp?.seconds
                       ? new Date(record.timestamp.seconds * 1000).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
@@ -338,31 +305,26 @@ export function AnggotaDashboard() {
                     return (
                       <div
                         key={record.id}
-                        className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:bg-slate-100/50 transition"
+                        className="flex items-center justify-between p-4 bg-bento-soft rounded-2xl border border-bento-border hover:bg-white transition"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center border border-emerald-100 shrink-0">
-                            <CheckCircle className="w-5 h-5" />
+                          <div className="w-10 h-10 rounded-2xl bg-bento-accent flex items-center justify-center shrink-0">
+                            <CheckCircle className="w-5 h-5 text-bento-dark" />
                           </div>
                           <div>
-                            <span className="text-xs font-bold text-slate-800">{record.tanggal}</span>
-                            <div className="flex items-center gap-1.5 text-[11px] text-slate-400 mt-0.5">
-                              <span className="flex items-center gap-0.5">
-                                <Clock className="w-3.5 h-3.5" />
-                                {checkTime} WIB
-                              </span>
-                              <span>•</span>
-                              <span className="flex items-center gap-0.5">
-                                <MapPin className="w-3.5 h-3.5" />
-                                {record.latitude ? 'GPS' : 'Tanpa GPS'}
-                              </span>
+                            <span className="text-sm font-semibold text-bento-text">{record.tanggal}</span>
+                            <div className="flex items-center gap-1.5 text-xs text-bento-muted mt-0.5">
+                              <Clock className="w-3.5 h-3.5" />
+                              {checkTime} WIB
+                              <span>·</span>
+                              <MapPin className="w-3.5 h-3.5" />
+                              {record.latitude ? 'GPS' : 'Tanpa GPS'}
                             </div>
                           </div>
                         </div>
-
-                        <div className="px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded-full text-[10px] font-bold tracking-wider uppercase">
+                        <span className="px-3 py-1 bg-lime-100 text-lime-800 rounded-full text-[11px] font-semibold uppercase">
                           {record.status}
-                        </div>
+                        </span>
                       </div>
                     );
                   })}
@@ -371,9 +333,8 @@ export function AnggotaDashboard() {
             </div>
           )}
 
-          {/* TAB 3: PROFIL & SETTING */}
           {activeTab === 'profil' && (
-            <div className="bg-white rounded-[32px] border border-bento-border p-6 shadow-sm">
+            <div className="scout-card p-6">
               <div className="flex items-center gap-2 mb-4">
                 <User className="w-5 h-5 text-bento-primary" />
                 <h3 className="font-sans text-base font-extrabold text-bento-text">Kelola Informasi Profil</h3>
@@ -385,7 +346,7 @@ export function AnggotaDashboard() {
                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Nama Lengkap</label>
                     <input
                       type="text"
-                      className="w-full px-4 py-3 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent rounded-xl text-sm"
+                      className="w-full px-4 py-3 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm bg-bento-soft"
                       value={newName}
                       onChange={(e) => setNewName(e.target.value)}
                       disabled={profileSaving}
@@ -398,7 +359,7 @@ export function AnggotaDashboard() {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Kelas</label>
                       <input
                         type="text"
-                        className="w-full px-4 py-3 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent rounded-xl text-sm"
+                        className="w-full px-4 py-3 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm bg-bento-soft"
                         value={newKelas}
                         onChange={(e) => setNewKelas(e.target.value)}
                         disabled={profileSaving}
@@ -409,7 +370,7 @@ export function AnggotaDashboard() {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Regu</label>
                       <input
                         type="text"
-                        className="w-full px-4 py-3 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-transparent rounded-xl text-sm"
+                        className="w-full px-4 py-3 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm bg-bento-soft"
                         value={newRegu}
                         onChange={(e) => setNewRegu(e.target.value)}
                         disabled={profileSaving}
@@ -424,7 +385,7 @@ export function AnggotaDashboard() {
                       type="button"
                       onClick={() => setIsEditingProfile(false)}
                       disabled={profileSaving}
-                      className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold"
+                      className="flex-1 py-3 scout-btn-secondary text-sm"
                     >
                       Batal
                     </button>
@@ -432,7 +393,7 @@ export function AnggotaDashboard() {
                       id="btn-save-edit-profile"
                       type="submit"
                       disabled={profileSaving}
-                      className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                      className="flex-1 scout-btn-primary text-sm py-3"
                     >
                       {profileSaving ? (
                         <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -474,7 +435,7 @@ export function AnggotaDashboard() {
                       setNewRegu(userProfile?.regu || '');
                       setIsEditingProfile(true);
                     }}
-                    className="w-full py-3.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs flex justify-center items-center gap-2 cursor-pointer"
+                    className="w-full scout-btn-secondary py-3.5 text-sm"
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit Profil Saya

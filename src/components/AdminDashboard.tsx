@@ -20,6 +20,7 @@ import {
 } from 'firebase/firestore';
 import { UserProfile, AttendanceRecord, QRCodeConfig, UserRole, UserStatus, AttendanceStatus, OperationType } from '../types';
 import { QRGenerator } from './QRGenerator';
+import { Alert } from './ui/Alert';
 import {
   Users,
   QrCode,
@@ -338,90 +339,80 @@ export function AdminDashboard() {
 
       {rulesError && (
         <div className="max-w-6xl mx-auto px-4 pt-4">
-          <div className="bg-red-50 border border-red-300 rounded-2xl p-4 text-xs text-red-900 space-y-3">
-            <div className="flex gap-3">
-              <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
-              <div>
-                <p className="font-bold mb-1">Firestore Rules belum aktif</p>
-                <p className="leading-relaxed">{rulesError}</p>
-              </div>
-            </div>
-            <a
-              href="https://console.firebase.google.com/project/absenforestbest/firestore/rules"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block px-4 py-2 bg-red-700 text-white font-bold rounded-xl hover:bg-red-800"
-            >
-              Buka Firebase Rules → Publish
-            </a>
-          </div>
+          <Alert
+            variant="error"
+            title="Firestore Rules belum aktif"
+            message={rulesError}
+            tips={['Buka Firebase Console → Firestore → Rules → Publish rules terbaru.']}
+          />
+          <a
+            href="https://console.firebase.google.com/project/absenforestbest/firestore/rules"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block mt-3 scout-btn-primary text-xs py-2.5 px-4"
+          >
+            Buka Firebase Rules
+          </a>
         </div>
       )}
       
       {/* Immersive Bento Page Header & Stats Row */}
       <div className="max-w-6xl mx-auto px-4 pt-6">
         {/* Top Header Card */}
-        <header className="flex flex-col md:flex-row justify-between items-start md:items-center bg-white px-8 py-6 rounded-[24px] shadow-sm border border-bento-border gap-4">
+        <header className="scout-card flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-5 gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-bento-primary rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm">
-              <Users className="w-5 h-5 text-bento-highlight" />
+            <div className="w-11 h-11 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-bento-dark" />
             </div>
             <div>
-              <span className="text-[10px] font-extrabold tracking-wider text-bento-muted font-mono uppercase">Control Panel Pembina</span>
-              <h1 className="text-xl font-extrabold tracking-tight font-sans">ForestBest Scout Control Panel</h1>
-              <p className="text-xs text-bento-muted font-sans mt-0.5">{formatHeaderDate()} • Pangkalan SMA 1 Forest</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Control Panel</p>
+              <h1 className="text-xl font-bold text-bento-text">Dashboard Pembina</h1>
+              <p className="text-sm text-bento-muted mt-0.5">{formatHeaderDate()}</p>
             </div>
           </div>
-          <button 
+          <button
             id="btn-scout-header-report"
             onClick={handleRotateQR}
-            className="bg-bento-primary text-white px-5 py-2.5 rounded-full font-bold text-xs flex items-center gap-1.5 hover:bg-bento-primary-hover transition duration-150 shadow-sm shrink-0 cursor-pointer"
+            className="scout-btn-primary text-sm py-2.5 px-5 shrink-0"
           >
-            <Sparkles className="w-3.5 h-3.5 text-bento-highlight" />
-            Rotate Token Baru
+            <Sparkles className="w-4 h-4" />
+            Rotate Token
           </button>
         </header>
 
-        {/* Core Bento Counters Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-          <div className="bg-bento-highlight rounded-[24px] p-5 flex flex-col justify-between border border-bento-border-green shadow-sm min-h-[110px]">
-            <div className="bg-white/50 w-8 h-8 rounded-full flex items-center justify-center border border-bento-border-green/20">
-              <CheckCircle className="w-4 h-4 text-bento-primary" />
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
+          <div className="scout-card p-5 min-h-[110px]">
+            <div className="w-8 h-8 rounded-xl bg-bento-accent flex items-center justify-center mb-3">
+              <CheckCircle className="w-4 h-4 text-bento-dark" />
             </div>
-            <div className="mt-2">
-              <p className="text-bento-primary font-bold text-[10px] uppercase tracking-wider">Hadir Hari Ini</p>
-              <h2 className="text-2xl font-black mt-0.5 text-bento-text">{loggedTodayCount} <span className="text-xs font-semibold text-bento-primary/75">/ {totalScoutsCount}</span></h2>
-            </div>
+            <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Hadir Hari Ini</p>
+            <h2 className="text-2xl font-bold mt-1 text-bento-text">
+              {loggedTodayCount} <span className="text-sm font-medium text-bento-muted">/ {totalScoutsCount}</span>
+            </h2>
           </div>
 
-          <div className="bg-white rounded-[24px] p-5 flex flex-col justify-between border border-bento-border shadow-sm min-h-[110px]">
-            <div className="bg-bento-soft w-8 h-8 rounded-full flex items-center justify-center">
-              <HelpCircle className="w-4 h-4 text-bento-muted animate-pulse" />
+          <div className="scout-card p-5 min-h-[110px]">
+            <div className="w-8 h-8 rounded-xl bg-bento-soft flex items-center justify-center mb-3">
+              <HelpCircle className="w-4 h-4 text-bento-muted" />
             </div>
-            <div className="mt-2">
-              <p className="text-bento-muted font-bold text-[10px] uppercase tracking-wider">Belum Absen</p>
-              <h2 className="text-2xl font-black mt-0.5 text-bento-text">{missingTodayCount} <span className="text-xs font-semibold text-bento-muted">Scouts</span></h2>
-            </div>
+            <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Belum Absen</p>
+            <h2 className="text-2xl font-bold mt-1 text-bento-text">{missingTodayCount}</h2>
           </div>
 
-          <div className="bg-white rounded-[24px] p-5 flex flex-col justify-between border border-bento-border shadow-sm min-h-[110px]">
-            <div className="bg-bento-soft w-8 h-8 rounded-full flex items-center justify-center">
+          <div className="scout-card p-5 min-h-[110px]">
+            <div className="w-8 h-8 rounded-xl bg-bento-highlight flex items-center justify-center mb-3">
               <Users className="w-4 h-4 text-bento-primary" />
             </div>
-            <div className="mt-2">
-              <p className="text-bento-muted font-bold text-[10px] uppercase tracking-wider">Total Anggota</p>
-              <h2 className="text-2xl font-black mt-0.5 text-bento-text">{totalScoutsCount} <span className="text-xs font-semibold text-bento-muted">Anggota</span></h2>
-            </div>
+            <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Total Anggota</p>
+            <h2 className="text-2xl font-bold mt-1 text-bento-text">{totalScoutsCount}</h2>
           </div>
 
-          <div className="bg-bento-soft rounded-[24px] p-5 flex flex-col justify-between border border-bento-border-green/40 shadow-sm min-h-[110px]">
-            <div className="bg-white/70 w-8 h-8 rounded-full flex items-center justify-center">
+          <div className="scout-card p-5 min-h-[110px]">
+            <div className="w-8 h-8 rounded-xl bg-bento-highlight flex items-center justify-center mb-3">
               <BarChart2 className="w-4 h-4 text-bento-primary" />
             </div>
-            <div className="mt-2">
-              <p className="text-bento-primary font-bold text-[10px] uppercase tracking-wider">Rasio Kehadiran</p>
-              <h2 className="text-2xl font-black mt-0.5 text-bento-text">{attendanceRate}% <span className="text-xs font-semibold text-bento-primary/70">Aktif</span></h2>
-            </div>
+            <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Rasio Kehadiran</p>
+            <h2 className="text-2xl font-bold mt-1 text-bento-text">{attendanceRate}%</h2>
           </div>
         </div>
       </div>
@@ -429,44 +420,24 @@ export function AdminDashboard() {
       {/* Main interactive directory navigation and contents panels */}
       <div className="max-w-6xl mx-auto px-4 mt-6">
         
-        {/* Navigation Selector Tabs */}
-        <div className="bg-white p-1.5 rounded-[20px] border border-bento-border flex gap-2 shadow-sm mb-6">
-          <button
-            id="admin-tab-qr"
-            onClick={() => setAdminTab('qr_monitor')}
-            className={`flex-1 py-3 text-xs font-bold font-sans rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              adminTab === 'qr_monitor'
-                ? 'bg-bento-primary text-white shadow-sm'
-                : 'text-bento-muted hover:text-bento-text hover:bg-bento-soft/80'
-            }`}
-          >
-            <QrCode className="w-4 h-4" />
-            QR Generator & Presensi Live
-          </button>
-          <button
-            id="admin-tab-crud"
-            onClick={() => setAdminTab('crud_anggota')}
-            className={`flex-1 py-3 text-xs font-bold font-sans rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              adminTab === 'crud_anggota'
-                ? 'bg-bento-primary text-white shadow-sm'
-                : 'text-bento-muted hover:text-bento-text hover:bg-bento-soft/80'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            Kelola Data Anggota
-          </button>
-          <button
-            id="admin-tab-rekap"
-            onClick={() => setAdminTab('rekap')}
-            className={`flex-1 py-3 text-xs font-bold font-sans rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-              adminTab === 'rekap'
-                ? 'bg-bento-primary text-white shadow-sm'
-                : 'text-bento-muted hover:text-bento-text hover:bg-bento-soft/80'
-            }`}
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            Rekap & Statistik Bulanan
-          </button>
+        <div className="scout-card p-2 flex flex-wrap gap-1 mb-6">
+          {([
+            { id: 'admin-tab-qr', key: 'qr_monitor' as const, label: 'QR & Live', icon: QrCode },
+            { id: 'admin-tab-crud', key: 'crud_anggota' as const, label: 'Anggota', icon: Users },
+            { id: 'admin-tab-rekap', key: 'rekap' as const, label: 'Rekap', icon: FileSpreadsheet },
+          ]).map(({ id, key, label, icon: Icon }) => (
+            <button
+              key={key}
+              id={id}
+              onClick={() => setAdminTab(key)}
+              className={`scout-nav-pill flex-1 justify-center ${
+                adminTab === key ? 'scout-nav-pill-active' : 'scout-nav-pill-inactive'
+              }`}
+            >
+              <Icon className="w-4 h-4" />
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Tab contents panel layout */}
