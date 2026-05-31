@@ -1,0 +1,10 @@
+rules_version = '2';
+// EMERGENCY — paste ke Firebase Console → Firestore → Rules → Publish
+// Hanya untuk testing cepat. Ganti dengan firestore.rules setelah app jalan.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}

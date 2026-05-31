@@ -20,8 +20,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Safari/WebKit: long-polling avoids "Fetch API access control checks" listener errors
-const firestoreSettings = { experimentalAutoDetectLongPolling: true };
+// Safari/WebKit: force long-polling (fixes "Fetch API access control checks")
+const firestoreSettings = { experimentalForceLongPolling: true };
 const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID;
 export const db = firestoreDatabaseId
   ? initializeFirestore(app, firestoreSettings, firestoreDatabaseId)

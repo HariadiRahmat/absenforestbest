@@ -325,12 +325,22 @@ export function AdminDashboard() {
 
       {rulesError && (
         <div className="max-w-6xl mx-auto px-4 pt-4">
-          <div className="bg-red-50 border border-red-300 rounded-2xl p-4 flex gap-3 text-xs text-red-900">
-            <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
-            <div>
-              <p className="font-bold mb-1">Firestore Rules belum aktif</p>
-              <p className="leading-relaxed">{rulesError}</p>
+          <div className="bg-red-50 border border-red-300 rounded-2xl p-4 text-xs text-red-900 space-y-3">
+            <div className="flex gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
+              <div>
+                <p className="font-bold mb-1">Firestore Rules belum aktif</p>
+                <p className="leading-relaxed">{rulesError}</p>
+              </div>
             </div>
+            <a
+              href="https://console.firebase.google.com/project/absenforestbest/firestore/rules"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block px-4 py-2 bg-red-700 text-white font-bold rounded-xl hover:bg-red-800"
+            >
+              Buka Firebase Rules → Publish
+            </a>
           </div>
         </div>
       )}
