@@ -19,6 +19,7 @@ interface MemberCrudModalProps {
   onFormClassChange: (value: string) => void;
   onFormSquadChange: (value: string) => void;
   onFormStatusChange: (value: UserStatus) => void;
+  onFormRoleChange: (value: UserRole) => void;
 }
 
 export function MemberCrudModal({
@@ -38,11 +39,13 @@ export function MemberCrudModal({
   onFormClassChange,
   onFormSquadChange,
   onFormStatusChange,
+  onFormRoleChange,
 }: MemberCrudModalProps) {
+  const activeRole = isEditMode ? formRole : formContextRole;
   const title = isEditMode
-    ? formContextRole === UserRole.ADMIN
+    ? activeRole === UserRole.ADMIN
       ? 'Ubah Data Pembina'
-      : formContextRole === UserRole.PURNA
+      : activeRole === UserRole.PURNA
         ? 'Ubah Data Purna'
         : 'Ubah Data Anggota'
     : formContextRole === UserRole.ADMIN
@@ -101,30 +104,48 @@ export function MemberCrudModal({
 
           <div className="space-y-1">
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
-              Nama Lengkap{formContextRole === UserRole.PURNA && !isEditMode ? ' (opsional)' : ''}
+              Nama Lengkap{activeRole === UserRole.PURNA && !isEditMode ? ' (opsional)' : ''}
             </label>
             <input
               id="form-scout-name"
               type="text"
               className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs font-sans focus:outline-none focus:ring-2 focus:ring-emerald-700"
-              placeholder={formContextRole === UserRole.PURNA ? 'Bisa dilengkapi saat login' : 'Contoh: Farhan Sanjaya'}
+              placeholder={activeRole === UserRole.PURNA ? 'Bisa dilengkapi saat login' : 'Contoh: Farhan Sanjaya'}
               value={formName}
               onChange={(e) => onFormNameChange(e.target.value)}
-              required={formContextRole !== UserRole.PURNA || isEditMode}
+              required={activeRole !== UserRole.PURNA || isEditMode}
             />
           </div>
 
-          {formContextRole !== UserRole.PURNA && (
+          {isEditMode && (
+            <div className="space-y-1">
+              <label htmlFor="form-scout-role" className="text-[10px] font-bold text-bento-muted uppercase tracking-wider">
+                Role
+              </label>
+              <select
+                id="form-scout-role"
+                className="w-full px-3 py-3 border border-bento-border rounded-xl text-xs font-semibold bg-bento-soft text-bento-text"
+                value={formRole}
+                onChange={(e) => onFormRoleChange(e.target.value as UserRole)}
+              >
+                <option value={UserRole.ANGGOTA}>Anggota</option>
+                <option value={UserRole.ADMIN}>Pembina</option>
+                <option value={UserRole.PURNA}>Purna</option>
+              </select>
+            </div>
+          )}
+
+          {activeRole !== UserRole.PURNA && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-bento-muted uppercase tracking-wider">
-                  {formContextRole === UserRole.ADMIN ? 'Unit / Jabatan' : 'Kelas'}
+                  {activeRole === UserRole.ADMIN ? 'Unit / Jabatan' : 'Kelas'}
                 </label>
                 <input
                   id="form-scout-class"
                   type="text"
                   className="w-full px-4 py-3 border border-bento-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
-                  placeholder={formContextRole === UserRole.ADMIN ? 'Contoh: Pembina' : 'Contoh: X.4 / XII IPS'}
+                  placeholder={activeRole === UserRole.ADMIN ? 'Contoh: Pembina' : 'Contoh: X.4 / XII IPS'}
                   value={formClass}
                   onChange={(e) => onFormClassChange(e.target.value)}
                   required
@@ -133,13 +154,13 @@ export function MemberCrudModal({
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-bento-muted uppercase tracking-wider">
-                  {formContextRole === UserRole.ADMIN ? 'Bagian' : 'Regu Pramuka'}
+                  {activeRole === UserRole.ADMIN ? 'Bagian' : 'Regu Pramuka'}
                 </label>
                 <input
                   id="form-scout-squad"
                   type="text"
                   className="w-full px-4 py-3 border border-bento-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
-                  placeholder={formContextRole === UserRole.ADMIN ? 'Contoh: Staf' : 'Contoh: Garuda / Orchid'}
+                  placeholder={activeRole === UserRole.ADMIN ? 'Contoh: Staf' : 'Contoh: Garuda / Orchid'}
                   value={formSquad}
                   onChange={(e) => onFormSquadChange(e.target.value)}
                   required
@@ -161,7 +182,7 @@ export function MemberCrudModal({
             </select>
           </div>
 
-          <input type="hidden" value={formRole} readOnly />
+          {!isEditMode && <input type="hidden" value={formRole} readOnly />}
 
           <div className="flex gap-2 pt-4">
             <button

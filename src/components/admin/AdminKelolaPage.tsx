@@ -87,6 +87,21 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
     setShowMemberModal(true);
   };
 
+  const handleFormRoleChange = (role: UserRole) => {
+    setFormRole(role);
+    setFormContextRole(role);
+    if (role === UserRole.ADMIN && (!formClass.trim() || formClass === 'Purna')) {
+      setFormClass('Pembina');
+    }
+    if (role === UserRole.ADMIN && (!formSquad.trim() || formSquad === 'Alumni')) {
+      setFormSquad('Staf');
+    }
+    if (role === UserRole.PURNA) {
+      setFormClass('Purna');
+      setFormSquad('Alumni');
+    }
+  };
+
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -96,11 +111,12 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
     }
 
     const isPurnaCreate = !isEditMode && formContextRole === UserRole.PURNA;
+    const isPurnaEdit = isEditMode && formRole === UserRole.PURNA;
     const resolvedName = formName.trim() || formEmail.trim().split('@')[0];
-    const resolvedClass = formClass.trim() || (formContextRole === UserRole.PURNA ? 'Purna' : '');
-    const resolvedSquad = formSquad.trim() || (formContextRole === UserRole.PURNA ? 'Alumni' : '');
+    const resolvedClass = formClass.trim() || (formRole === UserRole.PURNA ? 'Purna' : '');
+    const resolvedSquad = formSquad.trim() || (formRole === UserRole.PURNA ? 'Alumni' : '');
 
-    if (!isPurnaCreate && (!resolvedName || !resolvedClass || !resolvedSquad)) {
+    if (!isPurnaCreate && !isPurnaEdit && (!resolvedName || !resolvedClass || !resolvedSquad)) {
       setFormError('Semua input wajib diisi.');
       return;
     }
@@ -245,6 +261,7 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
           onFormClassChange={setFormClass}
           onFormSquadChange={setFormSquad}
           onFormStatusChange={setFormStatus}
+          onFormRoleChange={handleFormRoleChange}
         />
       )}
     </div>
