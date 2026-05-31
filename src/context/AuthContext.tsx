@@ -120,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const profileUnsubRef = useRef<(() => void) | null>(null);
   const preRegisteredUnsubRef = useRef<(() => void) | null>(null);
+  const activeProfileUidRef = useRef<string | null>(null);
   const migratingRef = useRef(false);
   const migrateInFlightRef = useRef<Promise<boolean> | null>(null);
   const currentUserRef = useRef<FirebaseUser | null>(null);
@@ -267,77 +268,103 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    getRedirectResult(auth)
-      .catch((err) => {
-        if (isMissingRedirectStateError(err)) return;
-        console.error('Google redirect sign-in failed:', err);
-        setAuthError(getGoogleSignInErrorMessage(err));
-      });
+    let cancelled = false;
+    let unsubscribeAuth = () => {};
 
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      profileUnsubRef.current?.();
-      profileUnsubRef.current = null;
-      clearPreRegisteredListener();
+    const bootstrapAuth = async () => {
+      try {
+        await auth.authStateReady();
+        if (cancelled) return;
 
-      currentUserRef.current = user;
-      setCurrentUser(user);
+        await getRedirectResult(auth).catch((err) => {
+          if (isMissingRedirectStateError(err)) return;
+          console.error('Google redirect sign-in failed:', err);
+          setAuthError(getGoogleSignInErrorMessage(err));
+        });
+        if (cancelled) return;
 
-      if (!user) {
-        setUserProfile(null);
-        setAuthGate(null);
-        setLoading(false);
-        return;
-      }
+        unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+          clearPreRegisteredListener();
 
-      setLoading(true);
-      const userRef = doc(db, 'users', user.uid);
+          currentUserRef.current = user;
+          setCurrentUser(user);
 
-      const unsubscribeProfile = onSnapshot(
-        userRef,
-        async (docSnap) => {
-          if (docSnap.exists()) {
-            setUserProfile(normalizeUserProfile(user.uid, docSnap.data() as Record<string, unknown>));
+          if (!user) {
+            activeProfileUidRef.current = null;
+            profileUnsubRef.current?.();
+            profileUnsubRef.current = null;
+            setUserProfile(null);
             setAuthGate(null);
-            clearPreRegisteredListener();
             setLoading(false);
             return;
           }
 
-          try {
-            await resolveSignedInUser(user);
-          } catch (err) {
-            console.error('Failed to resolve user profile:', err);
-            if (err instanceof FirebaseError && err.code === 'permission-denied') {
-              setAuthError(
-                'Akses Firestore ditolak. Publish file firestore.rules terbaru di Firebase Console → Firestore → Rules → Publish. Jika memakai database non-default, publish rules ke database yang sama dengan VITE_FIREBASE_FIRESTORE_DATABASE_ID.'
-              );
-            }
-            setAuthGate(null);
-            setUserProfile(null);
-            clearPreRegisteredListener();
-          } finally {
+          if (activeProfileUidRef.current === user.uid && profileUnsubRef.current) {
             setLoading(false);
+            return;
           }
-        },
-        (error) => {
-          console.error('Profile snapshot error:', error);
-          setLoading(false);
-        }
-      );
 
-      profileUnsubRef.current = unsubscribeProfile;
-    });
+          activeProfileUidRef.current = user.uid;
+          profileUnsubRef.current?.();
+          profileUnsubRef.current = null;
+
+          setLoading(true);
+          const userRef = doc(db, 'users', user.uid);
+
+          const unsubscribeProfile = onSnapshot(
+            userRef,
+            async (docSnap) => {
+              if (docSnap.exists()) {
+                setUserProfile(normalizeUserProfile(user.uid, docSnap.data() as Record<string, unknown>));
+                setAuthGate(null);
+                clearPreRegisteredListener();
+                setLoading(false);
+                return;
+              }
+
+              try {
+                await resolveSignedInUser(user);
+              } catch (err) {
+                console.error('Failed to resolve user profile:', err);
+                if (err instanceof FirebaseError && err.code === 'permission-denied') {
+                  setAuthError(
+                    'Akses Firestore ditolak. Publish file firestore.rules terbaru di Firebase Console → Firestore → Rules → Publish. Jika memakai database non-default, publish rules ke database yang sama dengan VITE_FIREBASE_FIRESTORE_DATABASE_ID.'
+                  );
+                }
+                setAuthGate(null);
+                setUserProfile(null);
+                clearPreRegisteredListener();
+              } finally {
+                setLoading(false);
+              }
+            },
+            (error) => {
+              console.error('Profile snapshot error:', error);
+              setLoading(false);
+            }
+          );
+
+          profileUnsubRef.current = unsubscribeProfile;
+        });
+      } catch (err) {
+        console.error('Auth bootstrap failed:', err);
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    bootstrapAuth();
 
     return () => {
+      cancelled = true;
+      unsubscribeAuth();
       profileUnsubRef.current?.();
       clearPreRegisteredListener();
-      unsubscribeAuth();
     };
   }, []);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: 'select_account' });
+    // Jangan pakai prompt: 'select_account' — Google akan ingat akun terakhir dan sesi Firebase tetap tersimpan.
 
     if (shouldUseRedirectSignIn()) {
       await signInWithRedirect(auth, provider);
@@ -358,6 +385,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      activeProfileUidRef.current = null;
+      profileUnsubRef.current?.();
+      profileUnsubRef.current = null;
       await signOut(auth);
     } catch (error) {
       console.error('Error during log out:', error);

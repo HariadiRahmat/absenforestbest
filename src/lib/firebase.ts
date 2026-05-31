@@ -6,6 +6,7 @@
 import { initializeApp } from 'firebase/app';
 import {
   initializeAuth,
+  indexedDBLocalPersistence,
   browserLocalPersistence,
   browserPopupRedirectResolver,
 } from 'firebase/auth';
@@ -31,7 +32,8 @@ export const db = firestoreDatabaseId
   ? initializeFirestore(app, firestoreSettings, firestoreDatabaseId)
   : initializeFirestore(app, firestoreSettings);
 export const auth = initializeAuth(app, {
-  persistence: browserLocalPersistence,
+  // IndexedDB + localStorage: sesi tetap aktif setelah browser ditutup (kecuali mode privat / clear data).
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence],
   popupRedirectResolver: browserPopupRedirectResolver,
 });
 
