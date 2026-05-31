@@ -5,7 +5,7 @@
 
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { OperationType, FirestoreErrorInfo } from '../types';
 
 const firebaseConfig = {
@@ -20,10 +20,12 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
+// Safari/WebKit: long-polling avoids "Fetch API access control checks" listener errors
+const firestoreSettings = { experimentalAutoDetectLongPolling: true };
 const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID;
 export const db = firestoreDatabaseId
-  ? getFirestore(app, firestoreDatabaseId)
-  : getFirestore(app);
+  ? initializeFirestore(app, firestoreSettings, firestoreDatabaseId)
+  : initializeFirestore(app, firestoreSettings);
 export const auth = getAuth(app);
 
 async function testConnection() {

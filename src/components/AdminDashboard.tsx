@@ -68,6 +68,7 @@ export function AdminDashboard() {
   const [attendanceToday, setAttendanceToday] = useState<AttendanceRecord[]>([]);
   const [historicalAttendance, setHistoricalAttendance] = useState<AttendanceRecord[]>([]);
   const [activeQR, setActiveQR] = useState<QRCodeConfig | null>(null);
+  const [rulesError, setRulesError] = useState<string | null>(null);
 
   // Loading states
   const [loadingQR, setLoadingQR] = useState(false);
@@ -134,6 +135,12 @@ export function AdminDashboard() {
       }
     }, (error) => {
       logFirestoreError(error, OperationType.GET, `qr_codes/${todayStr}`);
+      const msg = error instanceof Error ? error.message : String(error);
+      if (msg.includes('permission') || msg.includes('Permission')) {
+        setRulesError(
+          'Firestore Rules belum di-publish. Buka Firebase Console → Firestore → Rules → salin file firestore.rules dari repo → Publish. Link: console.firebase.google.com/project/absenforestbest/firestore/rules'
+        );
+      }
     });
 
     const qAllAttend = query(collection(db, 'attendance'));
@@ -315,6 +322,18 @@ export function AdminDashboard() {
 
   return (
     <div id="scout-admin-dashboard-container" className="min-h-screen bg-bento-bg text-bento-text pb-20">
+
+      {rulesError && (
+        <div className="max-w-6xl mx-auto px-4 pt-4">
+          <div className="bg-red-50 border border-red-300 rounded-2xl p-4 flex gap-3 text-xs text-red-900">
+            <AlertCircle className="w-5 h-5 shrink-0 text-red-600" />
+            <div>
+              <p className="font-bold mb-1">Firestore Rules belum aktif</p>
+              <p className="leading-relaxed">{rulesError}</p>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Immersive Bento Page Header & Stats Row */}
       <div className="max-w-6xl mx-auto px-4 pt-6">

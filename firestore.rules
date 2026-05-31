@@ -29,9 +29,9 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          && getUserData().role == 'admin')
-        || isBootstrapEmail()
+        isBootstrapEmail()
+        || (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            && getUserData().role == 'admin')
       );
     }
 
