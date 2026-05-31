@@ -376,8 +376,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error during Google Sign In:', error);
       if (shouldFallbackToRedirect(error)) {
-        await signInWithRedirect(auth, provider);
-        return;
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectError) {
+          console.error('Google redirect fallback failed:', redirectError);
+          throw redirectError;
+        }
       }
       throw error;
     }

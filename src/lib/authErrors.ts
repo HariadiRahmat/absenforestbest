@@ -5,12 +5,25 @@ export function isMissingRedirectStateError(error: unknown): boolean {
   return error.message.includes('missing initial state');
 }
 
+export function isMobileOrInAppBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(ua);
+  const isInApp = /(FBAN|FBAV|Instagram|Line|Twitter|WhatsApp|TikTok|WebView)/i.test(ua);
+  return isMobile || isInApp;
+}
+
 export function getGoogleSignInErrorMessage(error: unknown): string {
   if (isMissingRedirectStateError(error)) {
     return 'Sesi login Google terputus. Tutup tab Google jika masih terbuka, lalu tekan Masuk dengan Google sekali lagi.';
   }
 
   const code = error instanceof FirebaseError ? error.code : '';
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+
+  if (message.includes('something went wrong')) {
+    return 'Google tidak bisa menyelesaikan login. Coba buka di Chrome/Safari (bukan browser dalam aplikasi), atau tutup popup lalu tekan Masuk lagi.';
+  }
 
   switch (code) {
     case 'auth/unauthorized-domain':
@@ -26,6 +39,8 @@ export function getGoogleSignInErrorMessage(error: unknown): string {
       return 'Koneksi internet bermasalah. Periksa jaringan lalu coba lagi.';
     case 'auth/account-exists-with-different-credential':
       return 'Email ini sudah terdaftar dengan metode login lain.';
+    case 'auth/internal-error':
+      return 'Login Google gagal sementara. Tutup tab Google yang masih terbuka, lalu coba lagi.';
     default:
       if (error instanceof Error && error.message) {
         return error.message;
@@ -35,8 +50,8 @@ export function getGoogleSignInErrorMessage(error: unknown): string {
 }
 
 export function shouldUseRedirectSignIn(): boolean {
-  // Popup lebih andal di Safari/mobile — redirect sering gagal karena sessionStorage terpartisi.
-  return false;
+  // Popup Google sering menampilkan "Something went wrong" di HP & browser in-app.
+  return isMobileOrInAppBrowser();
 }
 
 export function shouldFallbackToRedirect(error: unknown): boolean {
@@ -46,5 +61,6 @@ export function shouldFallbackToRedirect(error: unknown): boolean {
     'auth/popup-closed-by-user',
     'auth/cancelled-popup-request',
     'auth/web-storage-unsupported',
+    'auth/internal-error',
   ].includes(error.code);
 }
