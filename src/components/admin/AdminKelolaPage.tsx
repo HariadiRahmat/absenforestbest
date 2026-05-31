@@ -259,6 +259,7 @@ export function AdminKelolaPage({
 
       <PurnaApplicationsPanel
         applications={purnaApplications}
+        users={users}
         loading={loadingPurna}
       />
 

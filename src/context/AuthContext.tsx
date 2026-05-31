@@ -23,6 +23,7 @@ import { isPurnaProfileComplete, PurnaProfileFormData } from '../lib/purnaProfil
 import { normalizePurnaRegistration } from '../lib/purnaRegistration';
 import { AuthGateStatus } from '../lib/authGate';
 import { stripUndefined } from '../lib/firestoreUtils';
+import { ensurePreRegisteredForApprovedEmail } from '../lib/registrationActivation';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
@@ -150,6 +151,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return 'unregistered';
   };
 
+  const activateApprovedRegistration = async (user: FirebaseUser, userRef: ReturnType<typeof doc>) => {
+    const emailKey = user.email?.toLowerCase();
+    if (!emailKey) return false;
+
+    await ensurePreRegisteredForApprovedEmail(emailKey);
+
+    const migrated = await safeMigrate(user, userRef);
+    if (migrated) {
+      setAuthGate(null);
+      clearPreRegisteredListener();
+      return true;
+    }
+    return false;
+  };
+
   const watchPreRegisteredForMigration = (user: FirebaseUser, userRef: ReturnType<typeof doc>) => {
     const emailKey = user.email?.toLowerCase();
     if (!emailKey) return;
@@ -203,7 +219,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAuthGate(gate);
       setUserProfile(null);
 
-      if (gate === 'purna_pending' || gate === 'approved_awaiting_login') {
+      if (gate === 'approved_awaiting_login') {
+        const activated = await activateApprovedRegistration(user, userRef);
+        if (activated) return;
+        watchPreRegisteredForMigration(user, userRef);
+      } else if (gate === 'purna_pending') {
         watchPreRegisteredForMigration(user, userRef);
       } else {
         clearPreRegisteredListener();

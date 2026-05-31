@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import {
   doc,
-  setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
@@ -22,17 +21,21 @@ import {
   Loader2,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { buildPreRegisteredFromApplication, defaultKelasReguForRole } from '../lib/memberApproval';
-import { stripUndefined } from '../lib/firestoreUtils';
-import { MemberRegistration, PurnaApprovalStatus, UserRole } from '../types';
+import { defaultKelasReguForRole } from '../lib/memberApproval';
+import {
+  ensurePreRegisteredForApprovedApplication,
+  listApprovedAwaitingActivation,
+} from '../lib/registrationActivation';
+import { MemberRegistration, PurnaApprovalStatus, UserProfile, UserRole } from '../types';
 import { Alert } from './ui/Alert';
 
 interface PurnaApplicationsPanelProps {
   applications: MemberRegistration[];
+  users: UserProfile[];
   loading: boolean;
 }
 
-export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicationsPanelProps) {
+export function PurnaApplicationsPanel({ applications, users, loading }: PurnaApplicationsPanelProps) {
   const [processingEmail, setProcessingEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [roleByEmail, setRoleByEmail] = useState<Record<string, UserRole>>({});
@@ -73,18 +76,18 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
     try {
       const emailKey = app.email.toLowerCase();
 
-      await setDoc(
-        doc(db, 'pre_registered', emailKey),
-        stripUndefined({
-          ...buildPreRegisteredFromApplication(app, role, kelas, regu),
-          createdAt: serverTimestamp(),
-        })
-      );
-
       await updateDoc(doc(db, 'purna_registrations', emailKey), {
         approvalStatus: PurnaApprovalStatus.APPROVED,
         approvedRole: role,
         reviewedAt: serverTimestamp(),
+      });
+
+      await ensurePreRegisteredForApprovedApplication({
+        ...app,
+        approvalStatus: PurnaApprovalStatus.APPROVED,
+        approvedRole: role,
+        kelas,
+        regu,
       });
     } catch (err) {
       console.error(err);
@@ -124,9 +127,23 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
     }
   };
 
+  const handleActivate = async (app: MemberRegistration) => {
+    setProcessingEmail(app.email);
+    setError(null);
+    try {
+      await ensurePreRegisteredForApprovedApplication(app);
+    } catch (err) {
+      console.error(err);
+      setError('Gagal menyiapkan aktivasi akun. Coba lagi atau periksa Firestore rules.');
+    } finally {
+      setProcessingEmail(null);
+    }
+  };
+
   const pending = applications.filter((a) => a.approvalStatus === PurnaApprovalStatus.PENDING);
   const rejected = applications.filter((a) => a.approvalStatus === PurnaApprovalStatus.REJECTED);
-  const reviewItems = [...pending, ...rejected];
+  const approvedAwaiting = listApprovedAwaitingActivation(applications, users);
+  const reviewItems = [...pending, ...rejected, ...approvedAwaiting];
 
   return (
     <div className="scout-card p-4 sm:p-6">
@@ -143,6 +160,9 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
           </div>
         </div>
         {pending.length > 0 && <span className="scout-count-badge">{pending.length}</span>}
+        {pending.length === 0 && approvedAwaiting.length > 0 && (
+          <span className="scout-count-badge">{approvedAwaiting.length}</span>
+        )}
       </div>
 
       {error && <Alert variant="error" title="Perhatian" message={error} className="mb-4" onDismiss={() => setError(null)} />}
@@ -178,6 +198,34 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
                     onReguChange={(v) => setReguByEmail((prev) => ({ ...prev, [app.email]: v }))}
                     onApprove={() => handleApprove(app)}
                     onReject={() => handleReject(app)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {approvedAwaiting.length > 0 && (
+            <section>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-bento-muted mb-3">
+                Disetujui — Menunggu Aktivasi ({approvedAwaiting.length})
+              </h4>
+              <p className="text-xs text-bento-muted mb-3 leading-relaxed">
+                Akun sudah disetujui tapi belum aktif login. Tekan &quot;Siapkan Aktivasi&quot; jika pengguna stuck di halaman persetujuan.
+              </p>
+              <div className="space-y-3">
+                {approvedAwaiting.map((app) => (
+                  <ApplicationCard
+                    key={app.email}
+                    app={app}
+                    role={app.approvedRole ?? UserRole.ANGGOTA}
+                    kelas={app.kelas ?? '-'}
+                    regu={app.regu ?? '-'}
+                    processing={processingEmail === app.email}
+                    onRoleChange={() => {}}
+                    onKelasChange={() => {}}
+                    onReguChange={() => {}}
+                    onActivate={() => handleActivate(app)}
+                    awaitingActivation
                   />
                 ))}
               </div>
@@ -226,7 +274,9 @@ function ApplicationCard({
   onApprove,
   onReject,
   onDelete,
+  onActivate,
   readonly,
+  awaitingActivation,
 }: {
   app: MemberRegistration;
   role: UserRole;
@@ -239,11 +289,17 @@ function ApplicationCard({
   onApprove?: () => void;
   onReject?: () => void;
   onDelete?: () => void;
+  onActivate?: () => void;
   readonly?: boolean;
+  awaitingActivation?: boolean;
 }) {
   const hasBiodata = Boolean(app.tanggalLahir || app.alamat || app.pendidikanSd);
   const statusBadge =
-    app.approvalStatus === PurnaApprovalStatus.REJECTED ? (
+    awaitingActivation ? (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-lime-50 text-lime-800 border border-lime-200">
+        <CheckCircle className="w-3 h-3" /> Menunggu login
+      </span>
+    ) : app.approvalStatus === PurnaApprovalStatus.REJECTED ? (
       <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-100">
         <XCircle className="w-3 h-3" /> Ditolak
       </span>
@@ -326,6 +382,13 @@ function ApplicationCard({
             </button>
           </div>
         </>
+      )}
+
+      {awaitingActivation && onActivate && (
+        <button type="button" onClick={onActivate} disabled={processing} className="w-full scout-btn-primary text-xs py-2.5">
+          {processing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+          Siapkan Aktivasi
+        </button>
       )}
 
       {readonly && onDelete && (
