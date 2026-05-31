@@ -146,11 +146,23 @@ export function GeofenceSettings() {
       {config.enabled && (
         <Alert
           variant="info"
-          title="Geofence aktif"
-          message="Anggota wajib berada dalam radius yang ditentukan saat absen. GPS harus diizinkan."
+          title={`Geofence aktif — ${config.label}`}
+          message={`Anggota wajib berada dalam radius ${config.radiusMeters} m dari ${config.label}. GPS harus diizinkan.`}
           className="mb-5"
         />
       )}
+
+      <div className="mb-5 p-4 rounded-2xl bg-bento-highlight/60 border border-bento-primary/15">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-bento-muted">Nama Lokasi Latihan</p>
+        <p className="text-base sm:text-lg font-bold text-bento-text mt-1 leading-snug">{config.label || DEFAULT_GEOFENCE.label}</p>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-bento-muted">
+          <span>Radius {config.radiusMeters} m</span>
+          <span className="hidden sm:inline">·</span>
+          <span className="font-mono text-[11px]">
+            {config.latitude.toFixed(6)}, {config.longitude.toFixed(6)}
+          </span>
+        </div>
+      </div>
 
       {error && (
         <Alert variant="error" title="Perhatian" message={error} className="mb-5" onDismiss={() => setError(null)} />
@@ -263,7 +275,7 @@ export function GeofenceSettings() {
             className="scout-btn-secondary text-sm py-2.5"
           >
             <ExternalLink className="w-4 h-4" />
-            Lihat di Peta
+            Lihat {config.label || 'Lokasi'} di Peta
           </a>
         </div>
 

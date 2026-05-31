@@ -233,8 +233,8 @@ export function QRScanner({
         >
           <MapPin className="w-3.5 h-3.5" />
           {gpsStatus === 'fetching' && 'Mencari GPS...'}
-          {gpsStatus === 'success' && withinGeofence === false && geofence?.enabled && 'Di luar area latihan'}
-          {gpsStatus === 'success' && withinGeofence === true && geofence?.enabled && 'Dalam area latihan'}
+          {gpsStatus === 'success' && withinGeofence === false && geofence?.enabled && `Di luar ${geofence.label}`}
+          {gpsStatus === 'success' && withinGeofence === true && geofence?.enabled && `Di ${geofence.label}`}
           {gpsStatus === 'success' && withinGeofence === null && `GPS (${gpsCoords.lat?.toFixed(4)}, ${gpsCoords.lng?.toFixed(4)})`}
           {gpsStatus === 'denied' && 'GPS tidak aktif'}
           {gpsStatus === 'idle' && 'Menyiapkan GPS...'}
@@ -246,7 +246,7 @@ export function QRScanner({
           <Alert
             variant="info"
             title={`Area latihan: ${geofence.label}`}
-            message={`Absensi hanya bisa dilakukan dalam radius ${geofence.radiusMeters} m dari lokasi latihan.`}
+            message={`Absensi hanya bisa dilakukan dalam radius ${geofence.radiusMeters} m dari ${geofence.label}.`}
           />
           <a
             href={geofenceMapsUrl(geofence)}
@@ -254,7 +254,7 @@ export function QRScanner({
             rel="noopener noreferrer"
             className="inline-flex text-xs font-semibold text-bento-primary hover:underline"
           >
-            Lihat lokasi latihan di Google Maps →
+            Lihat {geofence.label} di Google Maps →
           </a>
         </div>
       )}
