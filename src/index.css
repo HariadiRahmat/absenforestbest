@@ -481,50 +481,32 @@ html, body {
   }
 }
 
-.scout-welcome-pillars {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.5rem;
+.scout-welcome-services {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
   margin-bottom: 1.25rem;
+  padding: 0.25rem 0;
 }
 
 @media (min-width: 640px) {
-  .scout-welcome-pillars {
-    grid-template-columns: 1fr;
-    gap: 0.625rem;
+  .scout-welcome-services {
+    gap: 3.5rem;
     margin-bottom: 1.5rem;
   }
 }
 
-.scout-welcome-pillar {
+.scout-welcome-service {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
   gap: 0.5rem;
-  padding: 0.75rem 0.375rem;
-  border-radius: 1rem;
-  border: 1px solid var(--color-bento-border);
-  background: var(--color-bento-soft);
-  min-height: 6.5rem;
 }
 
-@media (min-width: 640px) {
-  .scout-welcome-pillar {
-    flex-direction: row;
-    align-items: flex-start;
-    text-align: left;
-    gap: 0.875rem;
-    padding: 1rem;
-    min-height: 0;
-    background: white;
-  }
-}
-
-.scout-welcome-pillar-icon {
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 0.75rem;
+.scout-welcome-service-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.875rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -532,37 +514,23 @@ html, body {
 }
 
 @media (min-width: 640px) {
-  .scout-welcome-pillar-icon {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 0.875rem;
+  .scout-welcome-service-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 1rem;
   }
 }
 
-.scout-welcome-pillar-title {
-  font-size: 0.6875rem;
+.scout-welcome-service-label {
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--color-bento-text);
   line-height: 1.25;
 }
 
 @media (min-width: 640px) {
-  .scout-welcome-pillar-title {
-    font-size: 0.875rem;
-  }
-}
-
-.scout-welcome-pillar-desc {
-  display: none;
-}
-
-@media (min-width: 640px) {
-  .scout-welcome-pillar-desc {
-    display: block;
-    font-size: 0.75rem;
-    color: var(--color-bento-muted);
-    margin-top: 0.125rem;
-    line-height: 1.45;
+  .scout-welcome-service-label {
+    font-size: 0.8125rem;
   }
 }
 

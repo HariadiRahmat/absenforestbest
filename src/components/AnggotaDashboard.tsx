@@ -18,7 +18,7 @@ import { Alert } from './ui/Alert';
 import { TabNav } from './ui/TabNav';
 import { getTodayStr } from '../lib/dateUtils';
 import {
-  Compass,
+  Shield,
   CheckCircle,
   Calendar,
   Clock,
@@ -158,7 +158,7 @@ export function AnggotaDashboard() {
         <header className="scout-card px-4 py-3.5 sm:px-6 sm:py-5">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 sm:w-11 sm:h-11 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
-              <Compass className="w-5 h-5 text-bento-dark" />
+              <Shield className="w-5 h-5 text-bento-dark" />
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Halo,</p>

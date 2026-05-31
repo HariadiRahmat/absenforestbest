@@ -6,7 +6,6 @@
 import React from 'react';
 import {
   Award,
-  Compass,
   FileText,
   QrCode,
   Shield,
@@ -22,26 +21,15 @@ interface WelcomePageProps {
   onPurnaRegister: () => void;
 }
 
-const pillars = [
+const services = [
   {
     icon: QrCode,
     title: 'Absensi',
-    titleDesktop: 'Absensi Anggota',
-    desc: 'Check-in harian via QR dinamis dan verifikasi lokasi GPS.',
     accent: 'bg-bento-highlight text-bento-primary',
-  },
-  {
-    icon: Shield,
-    title: 'Pembina',
-    titleDesktop: 'Panel Pembina',
-    desc: 'Kelola keanggotaan, absensi real-time, dan pengaturan latihan.',
-    accent: 'bg-bento-accent text-bento-dark',
   },
   {
     icon: FileText,
     title: 'Purna',
-    titleDesktop: 'Portal Purna',
-    desc: 'Akses dokumentasi kegiatan dan data alumni ForestBest Scout.',
     accent: 'bg-white text-bento-text border border-bento-border',
   },
 ];
@@ -58,7 +46,7 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
           </div>
 
           <div className="w-14 h-14 sm:w-16 sm:h-16 bg-bento-accent rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-sm border border-white/60">
-            <Compass className="w-7 h-7 sm:w-8 sm:h-8 text-bento-dark" />
+            <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-bento-dark" />
           </div>
 
           <h1 className="text-[1.625rem] sm:text-3xl font-bold text-bento-text tracking-tight leading-tight px-2">
@@ -76,17 +64,13 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
             Layanan platform
           </p>
 
-          <div className="scout-welcome-pillars">
-            {pillars.map(({ icon: Icon, title, titleDesktop, desc, accent }) => (
-              <div key={title} className="scout-welcome-pillar">
-                <div className={`scout-welcome-pillar-icon ${accent}`}>
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+          <div className="scout-welcome-services">
+            {services.map(({ icon: Icon, title, accent }) => (
+              <div key={title} className="scout-welcome-service">
+                <div className={`scout-welcome-service-icon ${accent}`}>
+                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
-                <div className="min-w-0 flex-1">
-                  <p className="scout-welcome-pillar-title sm:hidden">{title}</p>
-                  <p className="scout-welcome-pillar-title hidden sm:block">{titleDesktop}</p>
-                  <p className="scout-welcome-pillar-desc">{desc}</p>
-                </div>
+                <span className="scout-welcome-service-label">{title}</span>
               </div>
             ))}
           </div>

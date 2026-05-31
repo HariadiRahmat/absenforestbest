@@ -15,7 +15,7 @@ import { AnggotaDashboard } from './components/AnggotaDashboard';
 import { WelcomePage } from './components/WelcomePage';
 import { UserRole, UserStatus } from './types';
 import { isPurnaProfileComplete } from './lib/purnaProfile';
-import { Compass, LogOut } from 'lucide-react';
+import { Shield, LogOut } from 'lucide-react';
 import { getGoogleSignInErrorMessage } from './lib/authErrors';
 import { Alert } from './components/ui/Alert';
 
@@ -38,7 +38,7 @@ function ScoutAppContent() {
     return (
       <div id="scout-global-loader" className="min-h-screen bg-bento-bg flex flex-col justify-center items-center">
         <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center border border-bento-border shadow-sm">
-          <Compass className="w-7 h-7 text-bento-primary animate-spin" style={{ animationDuration: '3s' }} />
+          <Shield className="w-7 h-7 text-bento-primary animate-pulse" />
         </div>
         <p className="mt-4 text-sm font-semibold text-bento-text">ForestBest Scout</p>
         <p className="text-xs text-bento-muted mt-1">Memuat sesi...</p>
@@ -96,7 +96,7 @@ function ScoutAppContent() {
           <div className="scout-page max-w-6xl flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <div className="w-8 h-8 rounded-xl bg-bento-accent flex items-center justify-center shrink-0">
-                <Compass className="w-4 h-4 text-bento-dark" />
+                <Shield className="w-4 h-4 text-bento-dark" />
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-bold text-bento-text truncate">ForestBest Scout</p>

@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { Compass, User, BookOpen, Shield, LogOut } from 'lucide-react';
+import { Shield, User, BookOpen, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from './ui/Alert';
 
@@ -43,7 +43,7 @@ export function ProfileForm() {
       <div className="max-w-md w-full mx-auto scout-card overflow-hidden">
         <div className="px-5 sm:px-8 pt-8 sm:pt-10 pb-6 text-center border-b border-bento-border">
           <div className="w-14 h-14 bg-bento-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Compass className="w-7 h-7 text-bento-dark" />
+            <Shield className="w-7 h-7 text-bento-dark" />
           </div>
           <h2 className="text-xl font-bold text-bento-text">Lengkapi Profil</h2>
           <p className="text-sm text-bento-muted mt-2 leading-relaxed">
