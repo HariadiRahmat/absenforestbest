@@ -364,7 +364,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    // Jangan pakai prompt: 'select_account' — Google akan ingat akun terakhir dan sesi Firebase tetap tersimpan.
+    provider.setCustomParameters({ prompt: 'select_account' });
 
     if (shouldUseRedirectSignIn()) {
       await signInWithRedirect(auth, provider);
