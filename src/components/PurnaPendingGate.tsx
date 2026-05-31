@@ -33,8 +33,8 @@ export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
           title={isPending ? 'Menunggu Konfirmasi Admin' : 'Pendaftaran Ditolak'}
           message={
             isPending
-              ? `Pendaftaran Purna untuk ${currentUser?.email} sedang ditinjau Pembina. Anda belum bisa mengakses halaman Purna.`
-              : `Pendaftaran Purna untuk ${currentUser?.email} tidak disetujui. Hubungi Pembina untuk informasi lebih lanjut.`
+              ? `Pendaftaran untuk ${currentUser?.email} sedang ditinjau Pembina. Login kembali setelah disetujui.`
+              : `Pendaftaran untuk ${currentUser?.email} tidak disetujui. Hubungi Pembina untuk informasi lebih lanjut.`
           }
           tips={
             isPending

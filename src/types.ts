@@ -84,22 +84,28 @@ export const DEFAULT_PURNA_LINKS: PurnaLinksConfig = {
   links: [],
 };
 
-/** Pendaftaran Purna via landing page — menunggu konfirmasi admin */
-export interface PurnaRegistration {
+/** Pendaftaran akun baru via halaman Register — menunggu konfirmasi admin */
+export interface MemberRegistration {
   email: string;
   nama: string;
-  tanggalLahir: string;
-  alamat: string;
-  agama: string;
-  pendidikanSd: string;
-  pendidikanSmp: string;
-  pendidikanSma: string;
+  kelas?: string;
+  regu?: string;
+  tanggalLahir?: string;
+  alamat?: string;
+  agama?: string;
+  pendidikanSd?: string;
+  pendidikanSmp?: string;
+  pendidikanSma?: string;
   pendidikanKuliah?: string;
-  statusPerkawinan: string;
+  statusPerkawinan?: string;
   approvalStatus: PurnaApprovalStatus;
+  approvedRole?: UserRole;
   submittedAt?: any;
   reviewedAt?: any;
 }
+
+/** @deprecated Use MemberRegistration */
+export type PurnaRegistration = MemberRegistration;
 
 export interface AttendanceRecord {
   id?: string;

@@ -12,7 +12,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import {
-  Award,
+  UserPlus,
   CheckCircle,
   XCircle,
   Clock,
@@ -22,43 +22,66 @@ import {
   Loader2,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
-import { OperationType, PurnaApprovalStatus, PurnaRegistration, UserRole, UserStatus } from '../types';
+import { buildPreRegisteredFromApplication, defaultKelasReguForRole } from '../lib/memberApproval';
+import { stripUndefined } from '../lib/firestoreUtils';
+import { MemberRegistration, PurnaApprovalStatus, UserRole } from '../types';
 import { Alert } from './ui/Alert';
 
 interface PurnaApplicationsPanelProps {
-  applications: PurnaRegistration[];
+  applications: MemberRegistration[];
   loading: boolean;
 }
 
 export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicationsPanelProps) {
   const [processingEmail, setProcessingEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [roleByEmail, setRoleByEmail] = useState<Record<string, UserRole>>({});
+  const [kelasByEmail, setKelasByEmail] = useState<Record<string, string>>({});
+  const [reguByEmail, setReguByEmail] = useState<Record<string, string>>({});
 
-  const handleApprove = async (app: PurnaRegistration) => {
+  const getRole = (app: MemberRegistration) => roleByEmail[app.email] ?? UserRole.ANGGOTA;
+  const getKelas = (app: MemberRegistration) => {
+    const role = getRole(app);
+    const defaults = defaultKelasReguForRole(role, app);
+    return kelasByEmail[app.email] ?? defaults.kelas;
+  };
+  const getRegu = (app: MemberRegistration) => {
+    const role = getRole(app);
+    const defaults = defaultKelasReguForRole(role, app);
+    return reguByEmail[app.email] ?? defaults.regu;
+  };
+
+  const handleRoleChange = (app: MemberRegistration, role: UserRole) => {
+    setRoleByEmail((prev) => ({ ...prev, [app.email]: role }));
+    const defaults = defaultKelasReguForRole(role, app);
+    setKelasByEmail((prev) => ({ ...prev, [app.email]: defaults.kelas }));
+    setReguByEmail((prev) => ({ ...prev, [app.email]: defaults.regu }));
+  };
+
+  const handleApprove = async (app: MemberRegistration) => {
+    const role = getRole(app);
+    const kelas = getKelas(app).trim();
+    const regu = getRegu(app).trim();
+
+    if (role === UserRole.ANGGOTA && (!kelas || kelas === '-' || !regu || regu === '-')) {
+      setError('Isi kelas dan regu untuk Anggota sebelum menyetujui.');
+      return;
+    }
+
     setProcessingEmail(app.email);
     setError(null);
     try {
-      await setDoc(doc(db, 'pre_registered', app.email), {
-        nama: app.nama,
-        email: app.email,
-        kelas: 'Purna',
-        regu: 'Alumni',
-        role: UserRole.PURNA,
-        status: UserStatus.AKTIF,
-        tanggalLahir: app.tanggalLahir,
-        alamat: app.alamat,
-        agama: app.agama,
-        pendidikanSd: app.pendidikanSd,
-        pendidikanSmp: app.pendidikanSmp,
-        pendidikanSma: app.pendidikanSma,
-        pendidikanKuliah: app.pendidikanKuliah ?? '',
-        statusPerkawinan: app.statusPerkawinan,
-        profileComplete: true,
-        createdAt: serverTimestamp(),
-      });
+      await setDoc(
+        doc(db, 'pre_registered', app.email),
+        stripUndefined({
+          ...buildPreRegisteredFromApplication(app, role, kelas, regu),
+          createdAt: serverTimestamp(),
+        })
+      );
 
       await updateDoc(doc(db, 'purna_registrations', app.email), {
         approvalStatus: PurnaApprovalStatus.APPROVED,
+        approvedRole: role,
         reviewedAt: serverTimestamp(),
       });
     } catch (err) {
@@ -69,7 +92,7 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
     }
   };
 
-  const handleReject = async (app: PurnaRegistration) => {
+  const handleReject = async (app: MemberRegistration) => {
     if (!window.confirm(`Tolak pendaftaran ${app.nama} (${app.email})?`)) return;
     setProcessingEmail(app.email);
     setError(null);
@@ -86,7 +109,7 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
     }
   };
 
-  const handleDelete = async (app: PurnaRegistration) => {
+  const handleDelete = async (app: MemberRegistration) => {
     if (!window.confirm(`Hapus arsip pendaftaran ${app.email}?`)) return;
     setProcessingEmail(app.email);
     try {
@@ -108,12 +131,12 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
       <div className="scout-section-head">
         <div className="flex items-center gap-3 min-w-0">
           <div className="w-11 h-11 rounded-2xl bg-bento-accent flex items-center justify-center shrink-0">
-            <Award className="w-5 h-5 text-bento-dark" />
+            <UserPlus className="w-5 h-5 text-bento-dark" />
           </div>
           <div className="min-w-0">
             <h3 className="text-base font-bold text-bento-text">Tinjau Pendaftaran</h3>
             <p className="text-xs sm:text-sm text-bento-muted mt-0.5 leading-relaxed">
-              Setujui atau tolak pendaftaran baru. Yang disetujui otomatis masuk Daftar Purna di bawah.
+              Validasi pendaftar baru. Tentukan role Anggota, Pembina, atau Purna sebelum disetujui.
             </p>
           </div>
         </div>
@@ -129,7 +152,7 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
         </div>
       ) : reviewItems.length === 0 ? (
         <div className="text-center py-10 text-bento-muted text-sm">
-          <Award className="w-10 h-10 stroke-1 mx-auto mb-3 opacity-30" />
+          <UserPlus className="w-10 h-10 stroke-1 mx-auto mb-3 opacity-30" />
           Tidak ada pendaftaran yang perlu ditinjau.
         </div>
       ) : (
@@ -144,7 +167,13 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
                   <ApplicationCard
                     key={app.email}
                     app={app}
+                    role={getRole(app)}
+                    kelas={getKelas(app)}
+                    regu={getRegu(app)}
                     processing={processingEmail === app.email}
+                    onRoleChange={(role) => handleRoleChange(app, role)}
+                    onKelasChange={(v) => setKelasByEmail((prev) => ({ ...prev, [app.email]: v }))}
+                    onReguChange={(v) => setReguByEmail((prev) => ({ ...prev, [app.email]: v }))}
                     onApprove={() => handleApprove(app)}
                     onReject={() => handleReject(app)}
                   />
@@ -163,7 +192,13 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
                   <ApplicationCard
                     key={app.email}
                     app={app}
+                    role={UserRole.ANGGOTA}
+                    kelas={app.kelas ?? '-'}
+                    regu={app.regu ?? '-'}
                     processing={processingEmail === app.email}
+                    onRoleChange={() => {}}
+                    onKelasChange={() => {}}
+                    onReguChange={() => {}}
                     onDelete={() => handleDelete(app)}
                     readonly
                   />
@@ -179,19 +214,32 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
 
 function ApplicationCard({
   app,
+  role,
+  kelas,
+  regu,
   processing,
+  onRoleChange,
+  onKelasChange,
+  onReguChange,
   onApprove,
   onReject,
   onDelete,
   readonly,
 }: {
-  app: PurnaRegistration;
+  app: MemberRegistration;
+  role: UserRole;
+  kelas: string;
+  regu: string;
   processing: boolean;
+  onRoleChange: (role: UserRole) => void;
+  onKelasChange: (v: string) => void;
+  onReguChange: (v: string) => void;
   onApprove?: () => void;
   onReject?: () => void;
   onDelete?: () => void;
   readonly?: boolean;
 }) {
+  const hasBiodata = Boolean(app.tanggalLahir || app.alamat || app.pendidikanSd);
   const statusBadge =
     app.approvalStatus === PurnaApprovalStatus.REJECTED ? (
       <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-100">
@@ -216,33 +264,66 @@ function ApplicationCard({
         {statusBadge}
       </div>
 
-      <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-bento-muted">
-        <span>Lahir: {app.tanggalLahir}</span>
-        <span>{app.agama} · {app.statusPerkawinan}</span>
-        <span className="col-span-2 flex items-start gap-1">
-          <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
-          <span className="line-clamp-2">{app.alamat}</span>
-        </span>
-      </div>
+      {(app.kelas || app.regu) && (
+        <p className="text-[11px] text-bento-muted">
+          Pengajuan: {app.kelas || '—'} · {app.regu || '—'}
+        </p>
+      )}
 
-      <div className="flex flex-wrap gap-1.5">
-        <span className="scout-chip">SD: {app.pendidikanSd}</span>
-        <span className="scout-chip">SMP: {app.pendidikanSmp}</span>
-        <span className="scout-chip">SMA: {app.pendidikanSma}</span>
-        {app.pendidikanKuliah && <span className="scout-chip">Kuliah: {app.pendidikanKuliah}</span>}
-      </div>
+      {hasBiodata && (
+        <>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-bento-muted">
+            {app.tanggalLahir && <span>Lahir: {app.tanggalLahir}</span>}
+            {(app.agama || app.statusPerkawinan) && (
+              <span>{[app.agama, app.statusPerkawinan].filter(Boolean).join(' · ')}</span>
+            )}
+            {app.alamat && (
+              <span className="col-span-2 flex items-start gap-1">
+                <MapPin className="w-3 h-3 shrink-0 mt-0.5" />
+                <span className="line-clamp-2">{app.alamat}</span>
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {app.pendidikanSd && <span className="scout-chip">SD: {app.pendidikanSd}</span>}
+            {app.pendidikanSmp && <span className="scout-chip">SMP: {app.pendidikanSmp}</span>}
+            {app.pendidikanSma && <span className="scout-chip">SMA: {app.pendidikanSma}</span>}
+            {app.pendidikanKuliah && <span className="scout-chip">Kuliah: {app.pendidikanKuliah}</span>}
+          </div>
+        </>
+      )}
 
       {!readonly && onApprove && onReject && (
-        <div className="scout-action-row">
-          <button type="button" onClick={onApprove} disabled={processing} className="scout-action-btn text-lime-800 bg-lime-50 border-lime-200">
-            {processing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
-            Setujui
-          </button>
-          <button type="button" onClick={onReject} disabled={processing} className="scout-action-btn scout-action-btn-danger">
-            <XCircle className="w-3.5 h-3.5" />
-            Tolak
-          </button>
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 border-t border-bento-border">
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-bento-muted">Role</label>
+              <select className="scout-select text-xs" value={role} onChange={(e) => onRoleChange(e.target.value as UserRole)}>
+                <option value={UserRole.ANGGOTA}>Anggota</option>
+                <option value={UserRole.ADMIN}>Pembina</option>
+                <option value={UserRole.PURNA}>Purna</option>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-bento-muted">Kelas</label>
+              <input className="scout-input text-xs py-2" value={kelas} onChange={(e) => onKelasChange(e.target.value)} />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-semibold uppercase tracking-wider text-bento-muted">Regu</label>
+              <input className="scout-input text-xs py-2" value={regu} onChange={(e) => onReguChange(e.target.value)} />
+            </div>
+          </div>
+          <div className="scout-action-row">
+            <button type="button" onClick={onApprove} disabled={processing} className="scout-action-btn text-lime-800 bg-lime-50 border-lime-200">
+              {processing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle className="w-3.5 h-3.5" />}
+              Setujui
+            </button>
+            <button type="button" onClick={onReject} disabled={processing} className="scout-action-btn scout-action-btn-danger">
+              <XCircle className="w-3.5 h-3.5" />
+              Tolak
+            </button>
+          </div>
+        </>
       )}
 
       {readonly && onDelete && (

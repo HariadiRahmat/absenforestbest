@@ -189,39 +189,41 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
     }
 
-    function validPurnaRegistrationFields(regEmail) {
+    function validMemberRegistrationFields(regEmail) {
       return incoming().email.lower() == regEmail.lower()
         && incoming().nama is string && incoming().nama.size() > 0 && incoming().nama.size() <= 100
         && incoming().approvalStatus == 'pending'
-        && incoming().tanggalLahir is string && incoming().tanggalLahir.size() == 10
-        && incoming().alamat is string && incoming().alamat.size() > 0 && incoming().alamat.size() <= 500
-        && incoming().agama is string && incoming().agama.size() > 0 && incoming().agama.size() <= 50
-        && incoming().pendidikanSd is string && incoming().pendidikanSd.size() > 0 && incoming().pendidikanSd.size() <= 120
-        && incoming().pendidikanSmp is string && incoming().pendidikanSmp.size() > 0 && incoming().pendidikanSmp.size() <= 120
-        && incoming().pendidikanSma is string && incoming().pendidikanSma.size() > 0 && incoming().pendidikanSma.size() <= 120
+        && incoming().submittedAt == request.time
+        && (!('kelas' in incoming()) || (incoming().kelas is string && incoming().kelas.size() <= 20))
+        && (!('regu' in incoming()) || (incoming().regu is string && incoming().regu.size() <= 30))
+        && (!('tanggalLahir' in incoming()) || (incoming().tanggalLahir is string && incoming().tanggalLahir.size() <= 10))
+        && (!('alamat' in incoming()) || (incoming().alamat is string && incoming().alamat.size() <= 500))
+        && (!('agama' in incoming()) || (incoming().agama is string && incoming().agama.size() <= 50))
+        && (!('pendidikanSd' in incoming()) || (incoming().pendidikanSd is string && incoming().pendidikanSd.size() <= 120))
+        && (!('pendidikanSmp' in incoming()) || (incoming().pendidikanSmp is string && incoming().pendidikanSmp.size() <= 120))
+        && (!('pendidikanSma' in incoming()) || (incoming().pendidikanSma is string && incoming().pendidikanSma.size() <= 120))
         && (!('pendidikanKuliah' in incoming()) || (incoming().pendidikanKuliah is string && incoming().pendidikanKuliah.size() <= 120))
-        && incoming().statusPerkawinan is string && incoming().statusPerkawinan.size() > 0 && incoming().statusPerkawinan.size() <= 30
-        && incoming().submittedAt == request.time;
+        && (!('statusPerkawinan' in incoming()) || (incoming().statusPerkawinan is string && incoming().statusPerkawinan.size() <= 30));
     }
 
-    function purnaNotPreRegistered(email) {
+    function memberNotPreRegistered(email) {
       return !exists(/databases/$(database)/documents/pre_registered/$(email.lower()));
     }
 
-    // ── Purna self-registration (landing page, tanpa login) ────────────────
+    // ── Pendaftaran akun baru (halaman Register, tanpa login) ──────────────
     match /purna_registrations/{email} {
       allow get: if isAdmin()
         || (isSignedIn() && request.auth.token.email.lower() == email.lower())
         || (resource.data.approvalStatus in ['pending', 'rejected']);
       allow list: if isAdmin();
-      allow create: if purnaNotPreRegistered(email)
+      allow create: if memberNotPreRegistered(email)
         && !exists(/databases/$(database)/documents/purna_registrations/$(email))
-        && validPurnaRegistrationFields(email);
+        && validMemberRegistrationFields(email);
       allow update: if isAdmin()
         || (resource.data.approvalStatus == 'rejected'
           && incoming().approvalStatus == 'pending'
-          && purnaNotPreRegistered(email)
-          && validPurnaRegistrationFields(email));
+          && memberNotPreRegistered(email)
+          && validMemberRegistrationFields(email));
       allow delete: if isAdmin();
     }
 

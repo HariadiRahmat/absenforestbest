@@ -6,7 +6,7 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UnregisteredGate } from './components/UnregisteredGate';
-import { PurnaRegistrationLanding } from './components/PurnaRegistrationLanding';
+import { RegistrationLanding } from './components/RegistrationLanding';
 import { PurnaPendingGate } from './components/PurnaPendingGate';
 import { PurnaDashboard } from './components/PurnaDashboard';
 import { PurnaProfileForm } from './components/PurnaProfileForm';
@@ -23,7 +23,7 @@ import { Alert } from './components/ui/Alert';
 function ScoutAppContent() {
   const { currentUser, userProfile, authGate, loading, authError, clearAuthError, signInWithGoogle, logout } = useAuth();
   const [loginError, setLoginError] = React.useState<string | null>(null);
-  const [publicView, setPublicView] = React.useState<'login' | 'purna-register'>('login');
+  const [publicView, setPublicView] = React.useState<'login' | 'register'>('login');
 
   const handleGoogleLogin = async () => {
     setLoginError(null);
@@ -48,8 +48,8 @@ function ScoutAppContent() {
   }
 
   if (!currentUser) {
-    if (publicView === 'purna-register') {
-      return <PurnaRegistrationLanding onBack={() => setPublicView('login')} />;
+    if (publicView === 'register') {
+      return <RegistrationLanding onBack={() => setPublicView('login')} />;
     }
 
     return (
@@ -57,7 +57,7 @@ function ScoutAppContent() {
         loginError={loginError}
         authError={authError}
         onLogin={handleGoogleLogin}
-        onPurnaRegister={() => setPublicView('purna-register')}
+        onRegister={() => setPublicView('register')}
       />
     );
   }

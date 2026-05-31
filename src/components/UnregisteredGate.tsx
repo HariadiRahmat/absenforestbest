@@ -29,8 +29,8 @@ export function UnregisteredGate() {
           title="Akses memerlukan validasi Pembina"
           message="Setiap pengguna harus didaftarkan terlebih dahulu. Pembina akan menetapkan role Anda sebagai Anggota, Pembina, atau Purna."
           tips={[
-            'Anggota & Pembina: hubungi Pembina agar email Anda di pre-register.',
-            'Purna: daftar lewat halaman Registrasi Purna, lalu tunggu konfirmasi admin.',
+            'Belum daftar? Kembali ke halaman login dan pilih Daftar.',
+            'Sudah daftar? Tunggu Pembina menyetujui pendaftaran Anda.',
           ]}
           className="mb-6 mt-5 text-left"
         />

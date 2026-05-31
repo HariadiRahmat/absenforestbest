@@ -5,10 +5,10 @@
 
 import React from 'react';
 import {
-  Award,
   FileText,
   QrCode,
   Shield,
+  UserPlus,
   Users,
 } from 'lucide-react';
 import { Alert } from './ui/Alert';
@@ -18,7 +18,7 @@ interface WelcomePageProps {
   loginError: string | null;
   authError: string | null;
   onLogin: () => void;
-  onPurnaRegister: () => void;
+  onRegister: () => void;
 }
 
 const services = [
@@ -34,7 +34,7 @@ const services = [
   },
 ];
 
-export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }: WelcomePageProps) {
+export function WelcomePage({ loginError, authError, onLogin, onRegister }: WelcomePageProps) {
   return (
     <div id="scout-welcome-page" className="scout-welcome-shell">
       <header className="scout-welcome-hero">
@@ -53,7 +53,7 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
             ForestBest Scout
           </h1>
           <p className="text-[13px] sm:text-base text-bento-muted mt-2 leading-relaxed max-w-[280px] sm:max-w-sm mx-auto px-1">
-            Platform untuk anggota aktif, pembina, dan purna — akses hanya setelah didaftarkan Pembina.
+            Platform untuk anggota aktif, pembina, dan purna.
           </p>
         </div>
       </header>
@@ -81,7 +81,7 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
             <div className="text-center mb-4">
               <p className="text-[15px] sm:text-base font-bold text-bento-text">Masuk ke akun</p>
               <p className="text-xs text-bento-muted mt-1">
-                Anggota & Pembina: email harus sudah di-pre-register oleh Pembina
+                Sudah disetujui Pembina? Login dengan Google.
               </p>
             </div>
 
@@ -90,7 +90,7 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
                 variant="error"
                 title="Gagal masuk"
                 message={loginError || authError || undefined}
-                tips={['Pastikan akun Google sudah terdaftar.', 'Purna baru menunggu konfirmasi admin.']}
+                tips={['Belum punya akun? Daftar dulu lalu tunggu konfirmasi Pembina.']}
                 className="mb-4"
               />
             )}
@@ -111,17 +111,17 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
               </div>
 
               <button
-                id="btn-purna-register"
+                id="btn-scout-register"
                 type="button"
-                onClick={onPurnaRegister}
+                onClick={onRegister}
                 className="scout-btn-secondary"
               >
-                <Award className="w-[18px] h-[18px]" />
-                Daftar sebagai Purna
+                <UserPlus className="w-[18px] h-[18px]" />
+                Daftar
               </button>
 
               <p className="text-[11px] text-bento-muted text-center leading-relaxed pt-1 px-1">
-                Pendaftaran Purna perlu konfirmasi admin sebelum bisa login.
+                User baru wajib daftar dan menunggu validasi Pembina sebelum bisa login.
               </p>
             </div>
           </div>

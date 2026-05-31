@@ -45,8 +45,8 @@ function approvedApplicationToProfile(app: PurnaRegistration): UserProfile {
     userId: preRegisteredUserId(app.email),
     nama: app.nama,
     email: app.email.toLowerCase(),
-    kelas: 'Purna',
-    regu: 'Alumni',
+    kelas: app.kelas?.trim() || 'Purna',
+    regu: app.regu?.trim() || 'Alumni',
     status: UserStatus.AKTIF,
     role: UserRole.PURNA,
     createdAt: app.reviewedAt ?? app.submittedAt,
@@ -58,7 +58,7 @@ function approvedApplicationToProfile(app: PurnaRegistration): UserProfile {
     pendidikanSma: app.pendidikanSma,
     pendidikanKuliah: app.pendidikanKuliah,
     statusPerkawinan: app.statusPerkawinan,
-    profileComplete: true,
+    profileComplete: Boolean(app.tanggalLahir && app.alamat && app.pendidikanSd),
   };
 }
 
@@ -90,6 +90,7 @@ export function buildPurnaDirectoryList(
 
   for (const app of purnaApplications) {
     if (app.approvalStatus !== PurnaApprovalStatus.APPROVED) continue;
+    if (app.approvedRole && app.approvedRole !== UserRole.PURNA) continue;
     const email = app.email.toLowerCase();
     if (seenEmails.has(email)) continue;
     seenEmails.add(email);
