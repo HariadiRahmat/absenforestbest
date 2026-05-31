@@ -3,12 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { LogOut, ShieldAlert } from 'lucide-react';
+import React, { useState } from 'react';
+import { LogOut, ShieldAlert, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { Alert } from './ui/Alert';
+import { RegistrationLanding } from './RegistrationLanding';
 
 export function UnregisteredGate() {
-  const { logout, currentUser } = useAuth();
+  const { logout, currentUser, retryProfileSetup } = useAuth();
+  const [showRegister, setShowRegister] = useState(false);
+
+  if (showRegister) {
+    return (
+      <RegistrationLanding
+        onBack={() => setShowRegister(false)}
+        initialEmail={currentUser?.email ?? ''}
+        lockEmail={Boolean(currentUser?.email)}
+        onSubmitted={() => retryProfileSetup()}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bento-bg flex flex-col justify-center py-8 px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
@@ -17,15 +31,33 @@ export function UnregisteredGate() {
           <ShieldAlert className="w-8 h-8 text-bento-primary" />
         </div>
 
-        <h2 className="text-xl font-bold text-bento-text">Akses Memerlukan Validasi</h2>
+        <h2 className="text-xl font-bold text-bento-text">Akun Belum Terdaftar</h2>
         <p className="text-sm text-bento-muted mt-3 leading-relaxed">
           <span className="font-mono text-bento-text">{currentUser?.email}</span>
         </p>
 
-        <button onClick={logout} className="w-full scout-btn-secondary py-3 text-sm mt-8">
-          <LogOut className="w-4 h-4" />
-          Keluar
-        </button>
+        <Alert
+          variant="warning"
+          title="Email Anda belum terdaftar."
+          message="Daftar terlebih dahulu agar Pembina dapat memvalidasi akun Anda."
+          className="mb-6 mt-5 text-left"
+        />
+
+        <div className="space-y-3">
+          <button
+            type="button"
+            onClick={() => setShowRegister(true)}
+            className="w-full scout-btn-primary py-3 text-sm"
+          >
+            <UserPlus className="w-4 h-4" />
+            Daftar Sekarang
+          </button>
+
+          <button type="button" onClick={logout} className="w-full scout-btn-secondary py-3 text-sm">
+            <LogOut className="w-4 h-4" />
+            Keluar
+          </button>
+        </div>
       </div>
     </div>
   );

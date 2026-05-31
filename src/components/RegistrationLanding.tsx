@@ -28,15 +28,18 @@ import { Alert } from './ui/Alert';
 
 interface RegistrationLandingProps {
   onBack: () => void;
+  initialEmail?: string;
+  lockEmail?: boolean;
+  onSubmitted?: () => void | Promise<void>;
 }
 
-export function RegistrationLanding({ onBack }: RegistrationLandingProps) {
+export function RegistrationLanding({ onBack, initialEmail = '', lockEmail = false, onSubmitted }: RegistrationLandingProps) {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showBiodata, setShowBiodata] = useState(false);
 
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [nama, setNama] = useState('');
   const [kelas, setKelas] = useState('');
   const [regu, setRegu] = useState('');
@@ -136,8 +139,18 @@ export function RegistrationLanding({ onBack }: RegistrationLandingProps) {
             Setelah disetujui, login dengan Google menggunakan{' '}
             <span className="font-mono text-bento-text">{email.trim().toLowerCase()}</span>.
           </p>
-          <button type="button" onClick={onBack} className="w-full scout-btn-primary mt-6 py-3.5 text-sm">
-            Kembali ke Halaman Login
+          <button
+            type="button"
+            onClick={() => {
+              if (onSubmitted) {
+                void onSubmitted();
+                return;
+              }
+              onBack();
+            }}
+            className="w-full scout-btn-primary mt-6 py-3.5 text-sm"
+          >
+            {onSubmitted ? 'Lanjutkan' : 'Kembali ke Halaman Login'}
           </button>
         </div>
       </div>
@@ -194,7 +207,8 @@ export function RegistrationLanding({ onBack }: RegistrationLandingProps) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                disabled={submitting}
+                disabled={submitting || lockEmail}
+                readOnly={lockEmail}
               />
             </div>
           </div>

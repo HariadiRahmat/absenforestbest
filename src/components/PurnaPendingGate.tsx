@@ -43,24 +43,17 @@ export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
           variant={isApproved ? 'success' : isPending ? 'warning' : 'error'}
           title={
             isApproved
-              ? 'Akun Disetujui'
+              ? 'Akun disetujui'
               : isPending
-                ? 'Menunggu Konfirmasi Admin'
-                : 'Pendaftaran Ditolak'
+                ? 'Akun Anda masih menunggu validasi.'
+                : 'Pendaftaran ditolak'
           }
           message={
             isApproved
-              ? `Pendaftaran ${currentUser?.email} sudah disetujui. Akun akan diaktifkan otomatis — tidak perlu logout.`
+              ? 'Tunggu beberapa menit, akun Anda segera kami aktifkan.'
               : isPending
-                ? `Pendaftaran untuk ${currentUser?.email} sedang ditinjau Pembina. Halaman ini akan memperbarui otomatis setelah disetujui.`
+                ? 'Tunggu beberapa menit, Pembina akan memvalidasi pendaftaran Anda.'
                 : `Pendaftaran untuk ${currentUser?.email} tidak disetujui. Hubungi Pembina untuk informasi lebih lanjut.`
-          }
-          tips={
-            isApproved
-              ? ['Tunggu beberapa detik, atau tekan Perbarui Status di bawah.', 'Jika masalah berlanjut, hubungi Pembina.']
-              : isPending
-                ? ['Tetap di halaman ini — tidak perlu logout.', 'Setelah disetujui, akun aktif otomatis.']
-                : ['Hubungi Pembina jika ada pertanyaan.']
           }
           className="text-left"
         />
