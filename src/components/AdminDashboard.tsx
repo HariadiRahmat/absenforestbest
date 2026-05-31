@@ -548,25 +548,25 @@ export function AdminDashboard() {
             <div className="bg-white rounded-[32px] border border-bento-border p-6 shadow-sm">
               
               {/* Toolbar & filters row */}
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                <div className="relative flex-1 max-w-md">
+              <div className="flex flex-col gap-3 mb-6">
+                <div className="relative w-full">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                    <Search className="h-4.5 w-4.5 text-bento-muted" />
+                    <Search className="h-4 w-4 text-bento-muted" />
                   </span>
                   <input
                     id="member-search-bar"
                     type="text"
-                    className="w-full pl-10 pr-4 py-3 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary focus:border-transparent rounded-xl text-xs font-sans text-bento-text placeholder-bento-muted bg-bento-soft/20"
+                    className="w-full h-11 pl-10 pr-4 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm text-bento-text placeholder-bento-muted bg-bento-soft"
                     placeholder="Cari nama, email, kelas, regu..."
                     value={memberSearch}
                     onChange={(e) => setMemberSearch(e.target.value)}
                   />
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <select
                     id="filter-member-regu"
-                    className="px-3 py-2.5 border border-bento-border rounded-xl text-xs font-bold bg-bento-soft select-none text-bento-text"
+                    className="h-11 w-full sm:flex-1 sm:min-w-0 px-3 border border-bento-border rounded-2xl text-sm font-medium bg-white text-bento-text appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
                     value={memberFilterRegu}
                     onChange={(e) => setMemberFilterRegu(e.target.value)}
                   >
@@ -578,7 +578,7 @@ export function AdminDashboard() {
 
                   <select
                     id="filter-member-kelas"
-                    className="px-3 py-2.5 border border-bento-border rounded-xl text-xs font-bold bg-bento-soft select-none text-bento-text"
+                    className="h-11 w-full sm:flex-1 sm:min-w-0 px-3 border border-bento-border rounded-2xl text-sm font-medium bg-white text-bento-text appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
                     value={memberFilterKelas}
                     onChange={(e) => setMemberFilterKelas(e.target.value)}
                   >
@@ -590,10 +590,11 @@ export function AdminDashboard() {
 
                   <button
                     id="btn-add-scout-member"
+                    type="button"
                     onClick={handleOpenCreateModal}
-                    className="px-4 py-2.5 bg-bento-primary hover:bg-bento-primary-hover text-white rounded-xl text-xs font-bold font-sans shadow-sm flex items-center gap-1 cursor-pointer active:scale-97 border border-bento-primary"
+                    className="h-11 w-full sm:w-auto sm:shrink-0 scout-btn-primary text-sm px-5"
                   >
-                    <Plus className="w-4 h-4 text-bento-highlight" />
+                    <Plus className="w-4 h-4" />
                     Tambah Anggota
                   </button>
                 </div>
