@@ -45,7 +45,7 @@ const copy = {
   },
   [UserRole.PURNA]: {
     title: 'Daftar Purna',
-    subtitle: 'Pre-register email purna. Mereka melengkapi biodata setelah login.',
+    subtitle: 'Akun purna terdaftar. Ubah role dari Anggota/Pembina atau pre-register email baru.',
     searchPlaceholder: 'Cari nama atau email purna...',
     addLabel: 'Tambah Purna',
     emptyLabel: 'Belum ada purna yang cocok dengan pencarian.',

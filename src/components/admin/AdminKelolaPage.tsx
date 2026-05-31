@@ -35,6 +35,7 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
   const [formContextRole, setFormContextRole] = useState<UserRole>(UserRole.ANGGOTA);
   const [memberSearchAnggota, setMemberSearchAnggota] = useState('');
   const [memberSearchPembina, setMemberSearchPembina] = useState('');
+  const [memberSearchPurna, setMemberSearchPurna] = useState('');
   const [memberFilterRegu, setMemberFilterRegu] = useState('ALL');
   const [memberFilterKelas, setMemberFilterKelas] = useState('ALL');
 
@@ -55,6 +56,15 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
     users,
     UserRole.ADMIN,
     memberSearchPembina,
+    'ALL',
+    'ALL',
+    false
+  );
+
+  const filteredPurna = filterUsersByRole(
+    users,
+    UserRole.PURNA,
+    memberSearchPurna,
     'ALL',
     'ALL',
     false
@@ -240,7 +250,28 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
         />
       )}
 
-      {tab === 'crud_purna' && <PurnaApplicationsPanel />}
+      {tab === 'crud_purna' && (
+        <div className="space-y-4 sm:space-y-6">
+          <MemberDirectory
+            role={UserRole.PURNA}
+            members={filteredPurna}
+            loading={loadingMembers}
+            search={memberSearchPurna}
+            onSearchChange={setMemberSearchPurna}
+            filterRegu="ALL"
+            onFilterReguChange={() => {}}
+            filterKelas="ALL"
+            onFilterKelasChange={() => {}}
+            uniqueRegus={[]}
+            uniqueClasses={[]}
+            onAdd={() => handleOpenCreateModal(UserRole.PURNA)}
+            onEdit={handleOpenEditModal}
+            onDelete={handleDeleteMember}
+            onToggleStatus={handleToggleStatus}
+          />
+          <PurnaApplicationsPanel />
+        </div>
+      )}
 
       {tab === 'purna_docs' && <PurnaLinksSettings />}
 
