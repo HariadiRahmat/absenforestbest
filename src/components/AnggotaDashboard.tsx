@@ -8,7 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { db, handleFirestoreError } from '../lib/firebase';
 import { collection, query, where, orderBy, onSnapshot, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { AttendanceRecord, AttendanceStatus, OperationType } from '../types';
-import { QRScanner } from './QRScanner';
+import { QRScanner, AttendancePayload } from './QRScanner';
 import {
   Compass,
   CheckCircle,
@@ -87,32 +87,30 @@ export function AnggotaDashboard() {
   }, [currentUser, todayStr]);
 
   // Submit scan check-in
-  const handleScanSuccess = async (token: string, location: { lat: number | null; lng: number | null }) => {
+  const handleScanSuccess = async (payload: AttendancePayload) => {
     if (!currentUser || !userProfile) return;
     setCheckingIn(true);
     setScanError(null);
     setScanSuccess(false);
 
     try {
-      // First, verify client-side if a record already exists to prevent redundant network calls
-      const compositeId = `${todayStr}_${currentUser.uid}`;
+      const compositeId = `${payload.tanggal}_${currentUser.uid}`;
       const recordRef = doc(db, 'attendance', compositeId);
-      
+
       const recordSnap = await getDoc(recordRef);
       if (recordSnap.exists()) {
         throw new Error('Anda sudah melakukan absensi hari ini.');
       }
 
-      // 1. Submit the check in document to Firestore
       const newRecord: AttendanceRecord = {
-        userId: currentUser.uid,
-        nama: userProfile.nama,
-        tanggal: todayStr,
+        userId: payload.userId,
+        nama: payload.nama,
+        tanggal: payload.tanggal,
         timestamp: serverTimestamp(),
-        latitude: location.lat,
-        longitude: location.lng,
+        latitude: payload.latitude,
+        longitude: payload.longitude,
         status: AttendanceStatus.HADIR,
-        qrToken: token
+        qrToken: payload.qrToken,
       };
 
       await setDoc(recordRef, newRecord);
@@ -144,8 +142,23 @@ export function AnggotaDashboard() {
     }
   };
 
-  // Calculate Streak count
-  const streakCount = history.filter(item => item.status === AttendanceStatus.HADIR).length;
+  // Calculate consecutive-day streak (ends today if attended, otherwise yesterday)
+  const hadirDates = new Set(
+    history.filter((item) => item.status === AttendanceStatus.HADIR).map((item) => item.tanggal)
+  );
+  let streakCount = 0;
+  if (hadirDates.size > 0) {
+    const cursor = new Date();
+    if (!hadirDates.has(todayStr)) {
+      cursor.setDate(cursor.getDate() - 1);
+    }
+    while (true) {
+      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+      if (!hadirDates.has(key)) break;
+      streakCount++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+  }
 
   return (
     <div id="scout-anggota-dashboard-wrapper" className="min-h-screen bg-bento-bg text-bento-text pb-20">
@@ -288,6 +301,8 @@ export function AnggotaDashboard() {
               ) : (
                 <QRScanner
                   onScanSuccess={handleScanSuccess}
+                  userId={currentUser!.uid}
+                  memberName={userProfile!.nama}
                   loading={checkingIn}
                   errorMsg={scanError}
                 />

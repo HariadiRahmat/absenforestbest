@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User as FirebaseUser, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { UserProfile, UserRole, UserStatus, OperationType } from '../types';
 
@@ -21,36 +21,75 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase();
+
+function isBootstrapAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return ADMIN_EMAIL ? email.toLowerCase() === ADMIN_EMAIL : false;
+}
+
+async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnType<typeof doc>): Promise<boolean> {
+  const emailKey = user.email?.toLowerCase();
+  if (!emailKey) return false;
+
+  const preRef = doc(db, 'pre_registered', emailKey);
+  const preSnap = await getDoc(preRef);
+  if (!preSnap.exists()) return false;
+
+  const pre = preSnap.data();
+  const newProfile: UserProfile = {
+    userId: user.uid,
+    nama: pre.nama,
+    email: emailKey,
+    kelas: pre.kelas,
+    regu: pre.regu,
+    status: pre.status ?? UserStatus.AKTIF,
+    role: pre.role ?? UserRole.ANGGOTA,
+    createdAt: serverTimestamp(),
+  };
+
+  await setDoc(userRef, newProfile);
+  await deleteDoc(preRef);
+  return true;
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const profileUnsubRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+      profileUnsubRef.current?.();
+      profileUnsubRef.current = null;
+
       setCurrentUser(user);
-      
+
       if (!user) {
         setUserProfile(null);
         setLoading(false);
         return;
       }
 
-      // Realtime subscription to the user's profile doc in firestore
+      setLoading(true);
       const userRef = doc(db, 'users', user.uid);
-      const unsubscribeProfile = onSnapshot(userRef, async (docSnap) => {
-        if (docSnap.exists()) {
-          setUserProfile(docSnap.data() as UserProfile);
-          setLoading(false);
-        } else {
-          // If profile document does not exist, check if current user is the bootstrapped owner
-          if (user.email === 'hariadirahmat2003@gmail.com') {
-            try {
-              // Automatically register the owner as Admin to prevent locking
+
+      const unsubscribeProfile = onSnapshot(
+        userRef,
+        async (docSnap) => {
+          if (docSnap.exists()) {
+            setUserProfile(docSnap.data() as UserProfile);
+            setLoading(false);
+            return;
+          }
+
+          try {
+            if (isBootstrapAdmin(user.email)) {
               const newProfile: UserProfile = {
                 userId: user.uid,
                 nama: user.displayName || 'Pembina Pramuka',
-                email: user.email,
+                email: user.email!,
                 kelas: 'Pembina',
                 regu: 'Laksana',
                 status: UserStatus.AKTIF,
@@ -58,23 +97,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 createdAt: serverTimestamp(),
               };
               await setDoc(userRef, newProfile);
-            } catch (err) {
-              console.error('Failed to auto-register admin:', err);
+              return;
             }
-          } else {
+
+            const migrated = await migratePreRegisteredProfile(user, userRef);
+            if (!migrated) {
+              setUserProfile(null);
+            }
+          } catch (err) {
+            console.error('Failed to resolve user profile:', err);
             setUserProfile(null);
+          } finally {
+            setLoading(false);
           }
+        },
+        (error) => {
+          console.error('Profile snapshot error:', error);
           setLoading(false);
         }
-      }, (error) => {
-        handleFirestoreError(error, OperationType.GET, `users/${user.uid}`);
-        setLoading(false);
-      });
+      );
 
-      return () => unsubscribeProfile();
+      profileUnsubRef.current = unsubscribeProfile;
     });
 
-    return () => unsubscribeAuth();
+    return () => {
+      profileUnsubRef.current?.();
+      unsubscribeAuth();
+    };
   }, []);
 
   const signInWithGoogle = async () => {
@@ -99,25 +148,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const registerProfile = async (nama: string, kelas: string, regu: string) => {
     if (!currentUser) throw new Error('No authenticated user found');
-    
-    const userRef = doc(db, 'users', currentUser.uid);
-    const resolvedRole = currentUser.email === 'hariadirahmat2003@gmail.com' ? UserRole.ADMIN : UserRole.ANGGOTA;
-    const resolvedKelas = currentUser.email === 'hariadirahmat2003@gmail.com' ? 'Pembina' : kelas;
-    const resolvedRegu = currentUser.email === 'hariadirahmat2003@gmail.com' ? 'Laksana' : regu;
 
+    const userRef = doc(db, 'users', currentUser.uid);
+    const emailKey = currentUser.email?.toLowerCase() ?? '';
+    const preSnap = emailKey ? await getDoc(doc(db, 'pre_registered', emailKey)) : null;
+    const pre = preSnap?.exists() ? preSnap.data() : null;
+
+    const isAdmin = isBootstrapAdmin(currentUser.email);
     const newProfile: UserProfile = {
       userId: currentUser.uid,
       nama,
-      email: currentUser.email || '',
-      kelas: resolvedKelas,
-      regu: resolvedRegu,
-      status: UserStatus.AKTIF,
-      role: resolvedRole,
+      email: emailKey,
+      kelas: isAdmin ? 'Pembina' : kelas,
+      regu: isAdmin ? 'Laksana' : regu,
+      status: pre?.status ?? UserStatus.AKTIF,
+      role: isAdmin ? UserRole.ADMIN : (pre?.role ?? UserRole.ANGGOTA),
       createdAt: serverTimestamp(),
     };
 
     try {
       await setDoc(userRef, newProfile);
+      if (preSnap?.exists()) {
+        await deleteDoc(doc(db, 'pre_registered', emailKey));
+      }
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `users/${currentUser.uid}`);
     }
@@ -125,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfileDetails = async (nama: string, kelas: string, regu: string) => {
     if (!currentUser || !userProfile) throw new Error('No user profile to update');
-    
+
     const userRef = doc(db, 'users', currentUser.uid);
     const updatedProfile = {
       ...userProfile,

@@ -192,8 +192,12 @@ export function QRScanner({
       return;
     }
     const payload = buildPayload(rawToken);
-    await onScanSuccess(payload);
-    setScanSuccess(true);
+    try {
+      await onScanSuccess(payload);
+      setScanSuccess(true);
+    } catch {
+      setScanSuccess(false);
+    }
   }
 
   // -------------------------------------------------------------------------

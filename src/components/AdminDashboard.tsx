@@ -49,6 +49,15 @@ function getTodayStr() {
   return `${year}-${month}-${day}`;
 }
 
+function formatHeaderDate() {
+  return new Date().toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 export function AdminDashboard() {
   const todayStr = getTodayStr();
 
@@ -218,16 +227,15 @@ export function AdminDashboard() {
     }
 
     try {
-      const targetUID = isEditMode && selectedMemberId ? selectedMemberId : 'MEMBER_' + Math.random().toString(36).substring(2, 10).toUpperCase();
-      const userRef = doc(db, 'users', targetUID);
+      const emailKey = formEmail.trim().toLowerCase();
 
-      if (isEditMode) {
-        // Maintain legacy properties
-        const existingData = users.find(u => u.userId === selectedMemberId);
+      if (isEditMode && selectedMemberId) {
+        const userRef = doc(db, 'users', selectedMemberId);
+        const existingData = users.find((u) => u.userId === selectedMemberId);
         await setDoc(userRef, {
-          userId: targetUID,
+          userId: selectedMemberId,
           nama: formName.trim(),
-          email: formEmail.trim().toLowerCase(),
+          email: emailKey,
           kelas: formClass.trim(),
           regu: formSquad.trim(),
           status: formStatus,
@@ -235,11 +243,10 @@ export function AdminDashboard() {
           createdAt: existingData?.createdAt || serverTimestamp(),
         });
       } else {
-        // Pre-create standard profile
-        await setDoc(userRef, {
-          userId: targetUID,
+        // Pre-register by email — profile migrates to users/{auth.uid} on first Google login
+        await setDoc(doc(db, 'pre_registered', emailKey), {
           nama: formName.trim(),
-          email: formEmail.trim().toLowerCase(),
+          email: emailKey,
           kelas: formClass.trim(),
           regu: formSquad.trim(),
           status: formStatus,
@@ -318,7 +325,7 @@ export function AdminDashboard() {
             <div>
               <span className="text-[10px] font-extrabold tracking-wider text-bento-muted font-mono uppercase">Control Panel Pembina</span>
               <h1 className="text-xl font-extrabold tracking-tight font-sans">ForestBest Scout Control Panel</h1>
-              <p className="text-xs text-bento-muted font-sans mt-0.5">Jumat, 24 Mei 2024 • Pangkalan SMA 1 Forest</p>
+              <p className="text-xs text-bento-muted font-sans mt-0.5">{formatHeaderDate()} • Pangkalan SMA 1 Forest</p>
             </div>
           </div>
           <button 
@@ -762,7 +769,7 @@ export function AdminDashboard() {
           <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-xl border border-emerald-50 text-left shrink-0">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <h3 className="font-sans text-base font-extrabold text-slate-800">
-                {isEditMode ? 'Ubah Data Anggota Pramuka' : 'Tambah Anggota Pramuka Baru'}
+                {isEditMode ? 'Ubah Data Anggota Pramuka' : 'Pre-Register Anggota Baru'}
               </h3>
               <button
                 id="btn-close-member-modal"
@@ -778,6 +785,12 @@ export function AdminDashboard() {
                 <div className="p-3 bg-red-50 text-red-900 border border-red-200 rounded-xl text-xs font-semibold">
                   ⚠️ {formError}
                 </div>
+              )}
+
+              {!isEditMode && (
+                <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-100 rounded-xl p-3">
+                  Profil akan otomatis terhubung saat anggota login dengan email Google yang sama.
+                </p>
               )}
 
               {/* Name field */}
@@ -884,7 +897,7 @@ export function AdminDashboard() {
                   className="flex-1 py-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs font-sans transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-97 shadow-sm"
                 >
                   <Check className="w-4 h-4" />
-                  {isEditMode ? 'Simpan Data' : 'Tambah Anggota'}
+                  {isEditMode ? 'Simpan Data' : 'Simpan Pre-Register'}
                 </button>
               </div>
             </form>

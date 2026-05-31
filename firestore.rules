@@ -57,6 +57,18 @@ service cloud.firestore {
          incoming().regu is string && incoming().regu.size() <= 30 &&
          incoming().createdAt == request.time
         ) ||
+        // Migration from admin pre-registration on first login
+        (isOwner(userId) &&
+         incoming().userId == request.auth.uid &&
+         incoming().email == request.auth.token.email &&
+         incoming().role in ['anggota', 'admin'] &&
+         incoming().status in ['aktif', 'nonaktif'] &&
+         incoming().nama is string && incoming().nama.size() <= 100 &&
+         incoming().kelas is string && incoming().kelas.size() <= 20 &&
+         incoming().regu is string && incoming().regu.size() <= 30 &&
+         incoming().createdAt == request.time &&
+         exists(/databases/$(database)/documents/pre_registered/$(request.auth.token.email))
+        ) ||
         // Admin registration of others
         isAdmin()
       );
@@ -120,6 +132,14 @@ service cloud.firestore {
     match /settings/{settingId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
+    }
+
+    // 6. Admin Pre-Registration (linked to Auth UID on first Google login)
+    match /pre_registered/{email} {
+      allow get: if isSignedIn() && request.auth.token.email == email;
+      allow list: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
     }
   }
 }

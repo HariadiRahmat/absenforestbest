@@ -13,6 +13,16 @@ import { Compass, Sparkles, LogOut, AlertTriangle, ShieldCheck, HelpCircle, Hear
 
 function ScoutAppContent() {
   const { currentUser, userProfile, loading, signInWithGoogle, logout } = useAuth();
+  const [loginError, setLoginError] = React.useState<string | null>(null);
+
+  const handleGoogleLogin = async () => {
+    setLoginError(null);
+    try {
+      await signInWithGoogle();
+    } catch {
+      setLoginError('Gagal masuk via Google. Pastikan pop-up tidak diblokir dan coba lagi.');
+    }
+  };
 
   // 1. Loading Phase Spinner
   if (loading) {
@@ -87,10 +97,15 @@ function ScoutAppContent() {
             </div>
 
             {/* Google Sign-In Primary Action */}
-            <div className="pt-2">
+            <div className="pt-2 space-y-3">
+              {loginError && (
+                <div className="p-3 bg-red-50 text-red-900 border border-red-200 rounded-xl text-xs font-semibold">
+                  {loginError}
+                </div>
+              )}
               <button
                 id="btn-scout-google-login"
-                onClick={signInWithGoogle}
+                onClick={handleGoogleLogin}
                 className="w-full flex items-center justify-center gap-2.5 py-4 px-4 bg-bento-primary hover:bg-bento-primary-hover duration-150 text-white font-bold rounded-2xl text-xs tracking-wider uppercase font-sans shadow shadow-bento-primary-hover/10 active:scale-98 cursor-pointer border border-bento-primary shadow-sm"
               >
                 {/* Visual custom clean Google Emblem */}
