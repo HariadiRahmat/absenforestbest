@@ -9,6 +9,7 @@ import { filterUsersByRole } from '../../lib/filterUsers';
 import { UserProfile, UserRole, UserStatus } from '../../types';
 import { db, handleFirestoreError } from '../../lib/firebase';
 import { doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { stripUndefined } from '../../lib/firestoreUtils';
 import { OperationType } from '../../types';
 
 export type AdminKelolaTab = 'crud_anggota' | 'crud_pembina' | 'crud_purna' | 'purna_docs';
@@ -127,7 +128,7 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
       if (isEditMode && selectedMemberId) {
         const userRef = doc(db, 'users', selectedMemberId);
         const existingData = users.find((u) => u.userId === selectedMemberId);
-        await setDoc(userRef, {
+        await setDoc(userRef, stripUndefined({
           ...existingData,
           userId: selectedMemberId,
           nama: resolvedName,
@@ -137,7 +138,7 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
           status: formStatus,
           role: formRole,
           createdAt: existingData?.createdAt || serverTimestamp(),
-        });
+        }));
       } else {
         await setDoc(doc(db, 'pre_registered', emailKey), {
           nama: resolvedName,

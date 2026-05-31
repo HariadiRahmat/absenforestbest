@@ -22,6 +22,7 @@ import { UserProfile, UserRole, UserStatus, OperationType, PurnaApprovalStatus }
 import { isPurnaProfileComplete, PurnaProfileFormData } from '../lib/purnaProfile';
 import { normalizePurnaRegistration } from '../lib/purnaRegistration';
 import { AuthGateStatus } from '../lib/authGate';
+import { stripUndefined } from '../lib/firestoreUtils';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
@@ -104,7 +105,7 @@ async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnTy
       : undefined,
   };
 
-  await setDoc(userRef, newProfile);
+  await setDoc(userRef, stripUndefined(newProfile as Record<string, unknown>));
   await deleteDoc(preRef);
   return true;
 }
@@ -309,7 +310,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     try {
-      await setDoc(userRef, updatedProfile);
+      await setDoc(userRef, stripUndefined(updatedProfile as Record<string, unknown>));
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users/${currentUser.uid}`);
     }
