@@ -20,7 +20,7 @@ import { normalizeUserProfile } from '../lib/normalizeUserProfile';
 import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage, isMissingRedirectStateError } from '../lib/authErrors';
 import { UserProfile, UserRole, UserStatus, OperationType, PurnaApprovalStatus } from '../types';
 import { isPurnaProfileComplete, PurnaProfileFormData } from '../lib/purnaProfile';
-import { normalizePurnaRegistration } from '../lib/purnaRegistration';
+import { normalizeMemberRegistration } from '../lib/purnaRegistration';
 import { AuthGateStatus } from '../lib/authGate';
 import { stripUndefined } from '../lib/firestoreUtils';
 import { ensurePreRegisteredForApprovedEmail } from '../lib/registrationActivation';
@@ -121,6 +121,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const profileUnsubRef = useRef<(() => void) | null>(null);
   const preRegisteredUnsubRef = useRef<(() => void) | null>(null);
   const migratingRef = useRef(false);
+  const migrateInFlightRef = useRef<Promise<boolean> | null>(null);
   const currentUserRef = useRef<FirebaseUser | null>(null);
 
   const clearPreRegisteredListener = () => {
@@ -129,12 +130,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const safeMigrate = async (user: FirebaseUser, userRef: ReturnType<typeof doc>): Promise<boolean> => {
-    if (migratingRef.current) return false;
-    migratingRef.current = true;
+    if (migrateInFlightRef.current) {
+      return migrateInFlightRef.current;
+    }
+
+    const run = (async () => {
+      if (migratingRef.current) return false;
+      migratingRef.current = true;
+      try {
+        return await migratePreRegisteredProfile(user, userRef);
+      } catch (error) {
+        console.error('Profile migration failed:', error);
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes('permission') || message.includes('Permission')) {
+          setAuthError(
+            'Gagal mengaktifkan akun. Publish firestore.rules terbaru di Firebase Console, lalu tekan Perbarui Status lagi.'
+          );
+        } else {
+          setAuthError('Gagal mengaktifkan akun. Hubungi Pembina atau tekan Perbarui Status lagi.');
+        }
+        return false;
+      } finally {
+        migratingRef.current = false;
+      }
+    })();
+
+    migrateInFlightRef.current = run;
     try {
-      return await migratePreRegisteredProfile(user, userRef);
+      return await run;
     } finally {
-      migratingRef.current = false;
+      migrateInFlightRef.current = null;
     }
   };
 
@@ -142,7 +167,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const regSnap = await getDoc(doc(db, 'purna_registrations', emailKey));
     if (!regSnap.exists()) return 'unregistered';
 
-    const reg = normalizePurnaRegistration(emailKey, regSnap.data() as Record<string, unknown>);
+    const reg = normalizeMemberRegistration(emailKey, regSnap.data() as Record<string, unknown>);
     if (reg.approvalStatus === PurnaApprovalStatus.PENDING) return 'purna_pending';
     if (reg.approvalStatus === PurnaApprovalStatus.REJECTED) return 'purna_rejected';
     if (reg.approvalStatus === PurnaApprovalStatus.APPROVED) {
@@ -155,15 +180,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const emailKey = user.email?.toLowerCase();
     if (!emailKey) return false;
 
-    await ensurePreRegisteredForApprovedEmail(emailKey);
-
-    const migrated = await safeMigrate(user, userRef);
-    if (migrated) {
-      setAuthGate(null);
-      clearPreRegisteredListener();
-      return true;
+    try {
+      setAuthError(null);
+      await ensurePreRegisteredForApprovedEmail(emailKey);
+      const migrated = await safeMigrate(user, userRef);
+      if (migrated) {
+        setAuthGate(null);
+        clearPreRegisteredListener();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.error('Activate approved registration failed:', error);
+      const message = error instanceof Error ? error.message : String(error);
+      setAuthError(message.includes('Kelas dan regu')
+        ? message
+        : 'Gagal menyiapkan aktivasi akun. Hubungi Pembina.');
+      return false;
     }
-    return false;
   };
 
   const watchPreRegisteredForMigration = (user: FirebaseUser, userRef: ReturnType<typeof doc>) => {
@@ -368,7 +402,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const regSnap = emailKey ? await getDoc(doc(db, 'purna_registrations', emailKey)) : null;
     if (regSnap?.exists()) {
-      const reg = normalizePurnaRegistration(emailKey, regSnap.data() as Record<string, unknown>);
+      const reg = normalizeMemberRegistration(emailKey, regSnap.data() as Record<string, unknown>);
       if (reg.approvalStatus === PurnaApprovalStatus.PENDING) {
         throw new Error('Pendaftaran Purna Anda masih menunggu konfirmasi admin.');
       }

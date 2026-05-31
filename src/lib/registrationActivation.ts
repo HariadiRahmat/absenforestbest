@@ -5,36 +5,60 @@ import { normalizeMemberRegistration } from './purnaRegistration';
 import { stripUndefined } from './firestoreUtils';
 import { MemberRegistration, PurnaApprovalStatus, UserProfile, UserRole } from '../types';
 
-/** Buat atau perbaiki pre_registered dari pendaftaran yang sudah disetujui. */
-export async function ensurePreRegisteredForApprovedApplication(
-  app: MemberRegistration
-): Promise<boolean> {
-  const emailKey = app.email.toLowerCase();
-  if (app.approvalStatus !== PurnaApprovalStatus.APPROVED) return false;
+export type PreRegisterRepairResult = 'created' | 'updated';
 
-  const preRef = doc(db, 'pre_registered', emailKey);
-  const preSnap = await getDoc(preRef);
-  if (preSnap.exists()) return true;
-
+function resolveRoleAndClass(app: MemberRegistration): {
+  role: UserRole;
+  kelas: string;
+  regu: string;
+} {
   const role = app.approvedRole ?? UserRole.ANGGOTA;
   const defaults = defaultKelasReguForRole(role, app);
   const kelas = app.kelas?.trim() || defaults.kelas;
   const regu = app.regu?.trim() || defaults.regu;
 
+  if (role === UserRole.ANGGOTA) {
+    return {
+      role,
+      kelas: kelas && kelas !== '-' ? kelas : 'Belum diisi',
+      regu: regu && regu !== '-' ? regu : 'Belum diisi',
+    };
+  }
+
+  return { role, kelas, regu };
+}
+
+/** Buat atau perbaiki pre_registered dari pendaftaran yang sudah disetujui. */
+export async function ensurePreRegisteredForApprovedApplication(
+  app: MemberRegistration
+): Promise<PreRegisterRepairResult> {
+  const emailKey = app.email.toLowerCase();
+  if (app.approvalStatus !== PurnaApprovalStatus.APPROVED) {
+    throw new Error('Pendaftaran belum berstatus disetujui.');
+  }
+
+  const { role, kelas, regu } = resolveRoleAndClass(app);
+  const preRef = doc(db, 'pre_registered', emailKey);
+  const preSnap = await getDoc(preRef);
+
   await setDoc(
     preRef,
     stripUndefined({
       ...buildPreRegisteredFromApplication(app, role, kelas, regu),
-      createdAt: serverTimestamp(),
-    })
+      createdAt: preSnap.exists() ? preSnap.data()?.createdAt ?? serverTimestamp() : serverTimestamp(),
+    }),
+    { merge: true }
   );
-  return true;
+
+  return preSnap.exists() ? 'updated' : 'created';
 }
 
-export async function ensurePreRegisteredForApprovedEmail(email: string): Promise<boolean> {
+export async function ensurePreRegisteredForApprovedEmail(email: string): Promise<PreRegisterRepairResult> {
   const emailKey = email.toLowerCase();
   const regSnap = await getDoc(doc(db, 'purna_registrations', emailKey));
-  if (!regSnap.exists()) return false;
+  if (!regSnap.exists()) {
+    throw new Error('Data pendaftaran tidak ditemukan.');
+  }
 
   const app = normalizeMemberRegistration(emailKey, regSnap.data() as Record<string, unknown>);
   return ensurePreRegisteredForApprovedApplication(app);
@@ -54,4 +78,18 @@ export function listApprovedAwaitingActivation(
         && !loggedInEmails.has(app.email.toLowerCase())
     )
     .sort((a, b) => (b.reviewedAt?.seconds ?? b.submittedAt?.seconds ?? 0) - (a.reviewedAt?.seconds ?? a.submittedAt?.seconds ?? 0));
+}
+
+export function formatActivationReadyMessage(email: string, result: PreRegisterRepairResult): string {
+  const action = result === 'created' ? 'disiapkan' : 'diperbarui';
+  return `Pre-register ${action} untuk ${email}. Minta pengguna tekan "Perbarui Status" di halaman login.`;
+}
+
+export function getActivationErrorMessage(err: unknown): string {
+  if (err instanceof Error && err.message) return err.message;
+  const raw = String(err);
+  if (raw.includes('permission') || raw.includes('Permission')) {
+    return 'Akses Firestore ditolak. Publish firestore.rules terbaru di Firebase Console.';
+  }
+  return 'Gagal menyiapkan aktivasi akun. Coba lagi.';
 }

@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import {
   doc,
+  getDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
@@ -25,7 +26,10 @@ import { defaultKelasReguForRole } from '../lib/memberApproval';
 import {
   ensurePreRegisteredForApprovedApplication,
   listApprovedAwaitingActivation,
+  formatActivationReadyMessage,
+  getActivationErrorMessage,
 } from '../lib/registrationActivation';
+import { normalizeMemberRegistration } from '../lib/purnaRegistration';
 import { MemberRegistration, PurnaApprovalStatus, UserProfile, UserRole } from '../types';
 import { Alert } from './ui/Alert';
 
@@ -38,6 +42,7 @@ interface PurnaApplicationsPanelProps {
 export function PurnaApplicationsPanel({ applications, users, loading }: PurnaApplicationsPanelProps) {
   const [processingEmail, setProcessingEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [roleByEmail, setRoleByEmail] = useState<Record<string, UserRole>>({});
   const [kelasByEmail, setKelasByEmail] = useState<Record<string, string>>({});
   const [reguByEmail, setReguByEmail] = useState<Record<string, string>>({});
@@ -130,11 +135,20 @@ export function PurnaApplicationsPanel({ applications, users, loading }: PurnaAp
   const handleActivate = async (app: MemberRegistration) => {
     setProcessingEmail(app.email);
     setError(null);
+    setSuccess(null);
     try {
-      await ensurePreRegisteredForApprovedApplication(app);
+      const emailKey = app.email.toLowerCase();
+      const regSnap = await getDoc(doc(db, 'purna_registrations', emailKey));
+      if (!regSnap.exists()) {
+        throw new Error('Data pendaftaran tidak ditemukan.');
+      }
+
+      const freshApp = normalizeMemberRegistration(emailKey, regSnap.data() as Record<string, unknown>);
+      const result = await ensurePreRegisteredForApprovedApplication(freshApp);
+      setSuccess(formatActivationReadyMessage(emailKey, result));
     } catch (err) {
       console.error(err);
-      setError('Gagal menyiapkan aktivasi akun. Coba lagi atau periksa Firestore rules.');
+      setError(getActivationErrorMessage(err));
     } finally {
       setProcessingEmail(null);
     }
@@ -166,6 +180,7 @@ export function PurnaApplicationsPanel({ applications, users, loading }: PurnaAp
       </div>
 
       {error && <Alert variant="error" title="Perhatian" message={error} className="mb-4" onDismiss={() => setError(null)} />}
+      {success && <Alert variant="success" title="Aktivasi disiapkan" message={success} className="mb-4" onDismiss={() => setSuccess(null)} />}
 
       {loading ? (
         <div className="text-center py-10 text-bento-muted text-sm">

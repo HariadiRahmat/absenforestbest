@@ -14,8 +14,9 @@ interface PurnaPendingGateProps {
 }
 
 export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
-  const { logout, currentUser, retryProfileSetup } = useAuth();
+  const { logout, currentUser, retryProfileSetup, authError, clearAuthError } = useAuth();
   const [retrying, setRetrying] = useState(false);
+  const [retryError, setRetryError] = useState<string | null>(null);
   const isPending = status === 'purna_pending';
   const isApproved = status === 'approved_awaiting_login';
 
@@ -25,12 +26,18 @@ export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
 
   const handleRetry = async () => {
     setRetrying(true);
+    setRetryError(null);
+    clearAuthError();
     try {
       await retryProfileSetup();
+    } catch (err) {
+      setRetryError(err instanceof Error ? err.message : 'Gagal memperbarui status.');
     } finally {
       setRetrying(false);
     }
   };
+
+  const displayError = retryError || authError;
 
   return (
     <div className="min-h-screen bg-bento-bg flex flex-col justify-center py-10 px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))]">
@@ -50,13 +57,26 @@ export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
           }
           message={
             isApproved
-              ? 'Tunggu beberapa menit, akun Anda segera kami aktifkan.'
+              ? 'Tekan "Perbarui Status" setelah Pembina menyiapkan aktivasi akun Anda.'
               : isPending
                 ? 'Tunggu beberapa menit, Pembina akan memvalidasi pendaftaran Anda.'
                 : `Pendaftaran untuk ${currentUser?.email} tidak disetujui. Hubungi Pembina untuk informasi lebih lanjut.`
           }
           className="text-left"
         />
+
+        {displayError && (
+          <Alert
+            variant="error"
+            title="Gagal mengaktifkan akun"
+            message={displayError}
+            className="text-left"
+            onDismiss={() => {
+              setRetryError(null);
+              clearAuthError();
+            }}
+          />
+        )}
 
         <div className="space-y-3">
         {(isPending || isApproved) && (
