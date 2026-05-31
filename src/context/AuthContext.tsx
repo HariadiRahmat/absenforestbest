@@ -188,6 +188,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   setUserProfile(null);
                   return;
                 }
+                if (reg.approvalStatus === PurnaApprovalStatus.APPROVED) {
+                  setAuthGate('approved_awaiting_login');
+                  setUserProfile(null);
+                  return;
+                }
               }
             }
 

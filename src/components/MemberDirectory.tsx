@@ -32,7 +32,7 @@ export interface MemberDirectoryProps {
 const copy = {
   [UserRole.ANGGOTA]: {
     title: 'Daftar Anggota',
-    subtitle: 'Kelola data anggota, regu, dan status keaktifan.',
+    subtitle: 'Anggota aktif dan yang disetujui admin — termasuk yang belum login.',
     searchPlaceholder: 'Cari nama, email, kelas...',
     addLabel: 'Tambah Anggota',
     emptyLabel: 'Belum ada anggota yang cocok dengan pencarian atau filter.',
@@ -40,7 +40,7 @@ const copy = {
   },
   [UserRole.ADMIN]: {
     title: 'Daftar Pembina',
-    subtitle: 'Kelola akun pembina yang mengelola absensi dan QR harian.',
+    subtitle: 'Pembina aktif dan yang disetujui admin — termasuk yang belum login.',
     searchPlaceholder: 'Cari nama atau email pembina...',
     addLabel: 'Tambah Pembina',
     emptyLabel: 'Belum ada pembina yang cocok dengan pencarian.',
@@ -212,13 +212,25 @@ export function MemberDirectory({
                         <>
                           <div className="font-semibold">Kelas {member.kelas}</div>
                           <div className="text-bento-muted mt-0.5">Regu {member.regu}</div>
+                          {isPreRegisteredUserId(member.userId) && (
+                            <div className="mt-1.5">
+                              <PendingLoginBadge />
+                            </div>
+                          )}
                         </>
                       ) : role === UserRole.PURNA ? (
                         <PurnaProfileBadge member={member} />
                       ) : (
-                        <div className="text-bento-muted">
-                          {member.kelas} · {member.regu}
-                        </div>
+                        <>
+                          <div className="text-bento-muted">
+                            {member.kelas} · {member.regu}
+                          </div>
+                          {isPreRegisteredUserId(member.userId) && (
+                            <div className="mt-1.5">
+                              <PendingLoginBadge />
+                            </div>
+                          )}
+                        </>
                       )}
                     </td>
                     <td className="p-4 text-center">
@@ -311,6 +323,9 @@ function MemberCard({
       </div>
 
       <div className="flex flex-wrap gap-1.5 mt-3">
+        {isPreRegisteredUserId(member.userId) && (
+          <PendingLoginBadge />
+        )}
         {role === UserRole.ANGGOTA ? (
           <>
             <span className="scout-chip">Kelas {member.kelas}</span>
@@ -337,14 +352,18 @@ function MemberCard({
   );
 }
 
+function PendingLoginBadge() {
+  return (
+    <span className="inline-flex items-center gap-1 scout-chip text-sky-800 bg-sky-50 border-sky-200">
+      <Clock className="w-3 h-3" />
+      Belum login
+    </span>
+  );
+}
+
 function PurnaProfileBadge({ member }: { member: UserProfile }) {
   if (isPreRegisteredUserId(member.userId)) {
-    return (
-      <span className="inline-flex items-center gap-1 scout-chip text-sky-800 bg-sky-50 border-sky-200">
-        <Clock className="w-3 h-3" />
-        Belum login
-      </span>
-    );
+    return <PendingLoginBadge />;
   }
 
   const complete = isPurnaProfileComplete(member);

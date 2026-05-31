@@ -71,15 +71,17 @@ export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicati
     setProcessingEmail(app.email);
     setError(null);
     try {
+      const emailKey = app.email.toLowerCase();
+
       await setDoc(
-        doc(db, 'pre_registered', app.email),
+        doc(db, 'pre_registered', emailKey),
         stripUndefined({
           ...buildPreRegisteredFromApplication(app, role, kelas, regu),
           createdAt: serverTimestamp(),
         })
       );
 
-      await updateDoc(doc(db, 'purna_registrations', app.email), {
+      await updateDoc(doc(db, 'purna_registrations', emailKey), {
         approvalStatus: PurnaApprovalStatus.APPROVED,
         approvedRole: role,
         reviewedAt: serverTimestamp(),

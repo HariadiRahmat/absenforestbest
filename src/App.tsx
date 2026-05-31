@@ -14,7 +14,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AnggotaDashboard } from './components/AnggotaDashboard';
 import { WelcomePage } from './components/WelcomePage';
 import { UserRole, UserStatus } from './types';
-import { isPurnaAuthGate } from './lib/authGate';
+import { isRegistrationAuthGate } from './lib/authGate';
 import { isPurnaProfileComplete } from './lib/purnaProfile';
 import { Shield, LogOut } from 'lucide-react';
 import { getGoogleSignInErrorMessage } from './lib/authErrors';
@@ -66,7 +66,7 @@ function ScoutAppContent() {
     return <UnregisteredGate />;
   }
 
-  if (currentUser && isPurnaAuthGate(authGate)) {
+  if (currentUser && isRegistrationAuthGate(authGate)) {
     return <PurnaPendingGate status={authGate} />;
   }
 

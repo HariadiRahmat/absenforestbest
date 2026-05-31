@@ -1,7 +1,7 @@
 import { filterUsersByRole } from './filterUsers';
 import {
+  MemberRegistration,
   PurnaApprovalStatus,
-  PurnaRegistration,
   PreRegisteredMember,
   UserProfile,
   UserRole,
@@ -18,15 +18,24 @@ export function preRegisteredUserId(email: string): string {
   return `${PRE_REGISTERED_USER_PREFIX}${email.toLowerCase()}`;
 }
 
+function defaultKelasReguForRole(role: UserRole): { kelas: string; regu: string } {
+  if (role === UserRole.ADMIN) return { kelas: 'Pembina', regu: 'Staf' };
+  if (role === UserRole.PURNA) return { kelas: 'Purna', regu: 'Alumni' };
+  return { kelas: '-', regu: '-' };
+}
+
 function preRegisteredToProfile(entry: PreRegisteredMember): UserProfile {
+  const role = entry.role ?? UserRole.ANGGOTA;
+  const defaults = defaultKelasReguForRole(role);
+
   return {
     userId: preRegisteredUserId(entry.email),
     nama: entry.nama,
     email: entry.email.toLowerCase(),
-    kelas: entry.kelas || 'Purna',
-    regu: entry.regu || 'Alumni',
+    kelas: entry.kelas?.trim() || defaults.kelas,
+    regu: entry.regu?.trim() || defaults.regu,
     status: entry.status ?? UserStatus.AKTIF,
-    role: UserRole.PURNA,
+    role,
     createdAt: entry.createdAt,
     tanggalLahir: entry.tanggalLahir,
     alamat: entry.alamat,
@@ -40,15 +49,17 @@ function preRegisteredToProfile(entry: PreRegisteredMember): UserProfile {
   };
 }
 
-function approvedApplicationToProfile(app: PurnaRegistration): UserProfile {
+function approvedApplicationToProfile(app: MemberRegistration, role: UserRole): UserProfile {
+  const defaults = defaultKelasReguForRole(role);
+
   return {
     userId: preRegisteredUserId(app.email),
     nama: app.nama,
     email: app.email.toLowerCase(),
-    kelas: app.kelas?.trim() || 'Purna',
-    regu: app.regu?.trim() || 'Alumni',
+    kelas: app.kelas?.trim() || defaults.kelas,
+    regu: app.regu?.trim() || defaults.regu,
     status: UserStatus.AKTIF,
-    role: UserRole.PURNA,
+    role,
     createdAt: app.reviewedAt ?? app.submittedAt,
     tanggalLahir: app.tanggalLahir,
     alamat: app.alamat,
@@ -58,46 +69,71 @@ function approvedApplicationToProfile(app: PurnaRegistration): UserProfile {
     pendidikanSma: app.pendidikanSma,
     pendidikanKuliah: app.pendidikanKuliah,
     statusPerkawinan: app.statusPerkawinan,
-    profileComplete: Boolean(app.tanggalLahir && app.alamat && app.pendidikanSd),
+    profileComplete: role === UserRole.PURNA
+      ? Boolean(app.tanggalLahir && app.alamat && app.pendidikanSd)
+      : undefined,
   };
 }
 
-/** Gabungkan user aktif, pre-register, dan purna disetujui yang belum login. */
-export function buildPurnaDirectoryList(
+/** Gabungkan user aktif, pre-register, dan pendaftar disetujui yang belum login. */
+export function buildMemberDirectoryList(
+  role: UserRole,
   users: UserProfile[],
   preRegistered: PreRegisteredMember[],
-  purnaApplications: PurnaRegistration[],
-  search: string
+  applications: MemberRegistration[],
+  search: string,
+  reguFilter = 'ALL',
+  kelasFilter = 'ALL',
+  applyClassSquadFilters = false
 ): UserProfile[] {
   const seenEmails = new Set<string>();
   const list: UserProfile[] = [];
 
   for (const user of users) {
-    if (user.role !== UserRole.PURNA) continue;
+    if (user.role !== role) continue;
     const email = user.email.toLowerCase();
     seenEmails.add(email);
     list.push(user);
   }
 
   for (const entry of preRegistered) {
-    const role = String(entry.role ?? '').toLowerCase();
-    if (role !== UserRole.PURNA && role !== 'purna') continue;
+    if (entry.role !== role) continue;
     const email = entry.email.toLowerCase();
     if (seenEmails.has(email)) continue;
     seenEmails.add(email);
     list.push(preRegisteredToProfile(entry));
   }
 
-  for (const app of purnaApplications) {
+  for (const app of applications) {
     if (app.approvalStatus !== PurnaApprovalStatus.APPROVED) continue;
-    if (app.approvedRole && app.approvedRole !== UserRole.PURNA) continue;
+    const appRole = app.approvedRole ?? UserRole.PURNA;
+    if (appRole !== role) continue;
     const email = app.email.toLowerCase();
     if (seenEmails.has(email)) continue;
     seenEmails.add(email);
-    list.push(approvedApplicationToProfile(app));
+    list.push(approvedApplicationToProfile(app, appRole));
   }
 
   list.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
 
-  return filterUsersByRole(list, UserRole.PURNA, search, 'ALL', 'ALL', false);
+  return filterUsersByRole(list, role, search, reguFilter, kelasFilter, applyClassSquadFilters);
+}
+
+/** @deprecated Use buildMemberDirectoryList */
+export function buildPurnaDirectoryList(
+  users: UserProfile[],
+  preRegistered: PreRegisteredMember[],
+  purnaApplications: MemberRegistration[],
+  search: string
+): UserProfile[] {
+  return buildMemberDirectoryList(
+    UserRole.PURNA,
+    users,
+    preRegistered,
+    purnaApplications,
+    search,
+    'ALL',
+    'ALL',
+    false
+  );
 }

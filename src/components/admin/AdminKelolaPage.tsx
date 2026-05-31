@@ -6,8 +6,7 @@ import { PurnaApplicationsPanel } from '../PurnaApplicationsPanel';
 import { PurnaLinksSettings } from '../PurnaLinksSettings';
 import { MemberCrudModal } from './MemberCrudModal';
 import { PurnaProfileViewModal } from './PurnaProfileViewModal';
-import { filterUsersByRole } from '../../lib/filterUsers';
-import { buildPurnaDirectoryList, isPreRegisteredUserId } from '../../lib/purnaDirectory';
+import { buildMemberDirectoryList, isPreRegisteredUserId } from '../../lib/purnaDirectory';
 import { UserProfile, UserRole, UserStatus, PurnaRegistration, PreRegisteredMember } from '../../types';
 import { db, handleFirestoreError } from '../../lib/firebase';
 import { doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -53,36 +52,47 @@ export function AdminKelolaPage({
   const [memberFilterKelas, setMemberFilterKelas] = useState('ALL');
   const [viewPurnaMember, setViewPurnaMember] = useState<UserProfile | null>(null);
 
-  const anggotaUsers = users.filter((u) => u.role === UserRole.ANGGOTA);
-  const uniqueRegus = Array.from(new Set(anggotaUsers.map((u) => (u.regu ?? '').toUpperCase()))).filter(Boolean);
-  const uniqueClasses = Array.from(new Set(anggotaUsers.map((u) => (u.kelas ?? '').toUpperCase()))).filter(Boolean);
-
-  const filteredAnggota = filterUsersByRole(
-    users,
+  const anggotaDirectory = buildMemberDirectoryList(
     UserRole.ANGGOTA,
+    users,
+    preRegistered,
+    purnaApplications,
     memberSearchAnggota,
     memberFilterRegu,
     memberFilterKelas,
     true
   );
 
-  const filteredPembina = filterUsersByRole(
-    users,
+  const pembinaDirectory = buildMemberDirectoryList(
     UserRole.ADMIN,
-    memberSearchPembina,
-    'ALL',
-    'ALL',
-    false
+    users,
+    preRegistered,
+    purnaApplications,
+    memberSearchPembina
   );
 
-  const filteredPurna = buildPurnaDirectoryList(
+  const filteredPurna = buildMemberDirectoryList(
+    UserRole.PURNA,
     users,
     preRegistered,
     purnaApplications,
     memberSearchPurna
   );
 
-  const loadingPurnaDirectory = loadingMembers || loadingPurna;
+  const anggotaForFilters = buildMemberDirectoryList(
+    UserRole.ANGGOTA,
+    users,
+    preRegistered,
+    purnaApplications,
+    '',
+    'ALL',
+    'ALL',
+    false
+  );
+  const uniqueRegus = Array.from(new Set(anggotaForFilters.map((u) => (u.regu ?? '').toUpperCase()))).filter(Boolean);
+  const uniqueClasses = Array.from(new Set(anggotaForFilters.map((u) => (u.kelas ?? '').toUpperCase()))).filter(Boolean);
+
+  const loadingDirectory = loadingMembers || loadingPurna;
 
   const handleOpenCreateModal = (role: UserRole) => {
     setIsEditMode(false);
@@ -236,6 +246,11 @@ export function AdminKelolaPage({
         </p>
       </header>
 
+      <PurnaApplicationsPanel
+        applications={purnaApplications}
+        loading={loadingPurna}
+      />
+
       <TabNav
         tabs={[
           { id: 'admin-kelola-anggota', key: 'crud_anggota', label: 'Anggota', icon: Users },
@@ -251,8 +266,8 @@ export function AdminKelolaPage({
       {tab === 'crud_anggota' && (
         <MemberDirectory
           role={UserRole.ANGGOTA}
-          members={filteredAnggota}
-          loading={loadingMembers}
+          members={anggotaDirectory}
+          loading={loadingDirectory}
           search={memberSearchAnggota}
           onSearchChange={setMemberSearchAnggota}
           filterRegu={memberFilterRegu}
@@ -271,8 +286,8 @@ export function AdminKelolaPage({
       {tab === 'crud_pembina' && (
         <MemberDirectory
           role={UserRole.ADMIN}
-          members={filteredPembina}
-          loading={loadingMembers}
+          members={pembinaDirectory}
+          loading={loadingDirectory}
           search={memberSearchPembina}
           onSearchChange={setMemberSearchPembina}
           filterRegu="ALL"
@@ -289,15 +304,10 @@ export function AdminKelolaPage({
       )}
 
       {tab === 'crud_purna' && (
-        <div className="space-y-4 sm:space-y-6">
-          <PurnaApplicationsPanel
-            applications={purnaApplications}
-            loading={loadingPurna}
-          />
-          <MemberDirectory
-            role={UserRole.PURNA}
-            members={filteredPurna}
-            loading={loadingPurnaDirectory}
+        <MemberDirectory
+          role={UserRole.PURNA}
+          members={filteredPurna}
+          loading={loadingDirectory}
             search={memberSearchPurna}
             onSearchChange={setMemberSearchPurna}
             filterRegu="ALL"
@@ -310,10 +320,9 @@ export function AdminKelolaPage({
             onEdit={handleOpenEditModal}
             onDelete={handleDeleteMember}
             onToggleStatus={handleToggleStatus}
-            onView={setViewPurnaMember}
-            compact
-          />
-        </div>
+          onView={setViewPurnaMember}
+          compact
+        />
       )}
 
       {viewPurnaMember && (
