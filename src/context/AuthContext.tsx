@@ -44,7 +44,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase();
 
 const BOOTSTRAP_ADMIN_EMAILS = new Set(
-  [ADMIN_EMAIL, 'hariadirahmat2003@gmail.com', 'admin@gmail.com'].filter(Boolean) as string[]
+  [ADMIN_EMAIL, 'hariadirahmat2003@gmail.com', 'scoutforestbest@gmail.com', 'admin@gmail.com'].filter(Boolean) as string[]
 );
 
 function isBootstrapAdmin(email: string | null | undefined): boolean {

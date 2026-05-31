@@ -28,11 +28,13 @@ service cloud.firestore {
 
     function isBootstrapEmail() {
       return authEmail() == 'hariadirahmat2003@gmail.com'
+        || authEmail() == 'scoutforestbest@gmail.com'
         || authEmail() == 'admin@gmail.com';
     }
 
     function isPrimaryProtectedAdminEmail(email) {
-      return email.lower() == 'hariadirahmat2003@gmail.com';
+      return email.lower() == 'hariadirahmat2003@gmail.com'
+        || email.lower() == 'scoutforestbest@gmail.com';
     }
 
     function isProtectedUsersDoc(userId) {
