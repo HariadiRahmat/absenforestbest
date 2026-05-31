@@ -19,6 +19,7 @@ import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { normalizeUserProfile } from '../lib/normalizeUserProfile';
 import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage } from '../lib/authErrors';
 import { UserProfile, UserRole, UserStatus, OperationType } from '../types';
+import { isPurnaProfileComplete, PurnaProfileFormData } from '../lib/purnaProfile';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
@@ -30,6 +31,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   registerProfile: (nama: string, kelas: string, regu: string) => Promise<void>;
   updateProfileDetails: (nama: string, kelas: string, regu: string) => Promise<void>;
+  updatePurnaProfile: (fields: PurnaProfileFormData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,6 +56,12 @@ async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnTy
   if (!preSnap.exists()) return false;
 
   const pre = preSnap.data();
+  const role = (pre.role === UserRole.PURNA || pre.role === 'purna')
+    ? UserRole.PURNA
+    : pre.role === UserRole.ADMIN || pre.role === 'admin'
+      ? UserRole.ADMIN
+      : UserRole.ANGGOTA;
+
   const newProfile: UserProfile = {
     userId: user.uid,
     nama: pre.nama,
@@ -61,8 +69,9 @@ async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnTy
     kelas: pre.kelas,
     regu: pre.regu,
     status: pre.status ?? UserStatus.AKTIF,
-    role: pre.role ?? UserRole.ANGGOTA,
+    role,
     createdAt: serverTimestamp(),
+    profileComplete: role === UserRole.PURNA ? false : undefined,
   };
 
   await setDoc(userRef, newProfile);
@@ -233,6 +242,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updatePurnaProfile = async (fields: PurnaProfileFormData) => {
+    if (!currentUser || !userProfile || userProfile.role !== UserRole.PURNA) {
+      throw new Error('Profil purna tidak ditemukan.');
+    }
+
+    const userRef = doc(db, 'users', currentUser.uid);
+    const updatedProfile: UserProfile = {
+      ...userProfile,
+      nama: fields.nama.trim(),
+      tanggalLahir: fields.tanggalLahir.trim(),
+      alamat: fields.alamat.trim(),
+      agama: fields.agama.trim(),
+      pendidikanSd: fields.pendidikanSd.trim(),
+      pendidikanSmp: fields.pendidikanSmp.trim(),
+      pendidikanSma: fields.pendidikanSma.trim(),
+      pendidikanKuliah: fields.pendidikanKuliah.trim(),
+      statusPerkawinan: fields.statusPerkawinan.trim(),
+      profileComplete: false,
+    };
+    updatedProfile.profileComplete = isPurnaProfileComplete(updatedProfile);
+
+    try {
+      await setDoc(userRef, updatedProfile);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${currentUser.uid}`);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -245,6 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         registerProfile,
         updateProfileDetails,
+        updatePurnaProfile,
       }}
     >
       {children}

@@ -22,6 +22,7 @@ import {
 import { UserProfile, AttendanceRecord, QRCodeConfig, UserRole, UserStatus, AttendanceStatus, OperationType } from '../types';
 import { QRGenerator } from './QRGenerator';
 import { GeofenceSettings } from './GeofenceSettings';
+import { PurnaLinksSettings } from './PurnaLinksSettings';
 import { MemberDirectory } from './MemberDirectory';
 import { Alert } from './ui/Alert';
 import { TabNav } from './ui/TabNav';
@@ -41,6 +42,8 @@ import {
   Sparkles,
   BarChart2,
   Shield,
+  Award,
+  Link2,
 } from 'lucide-react';
 
 function formatHeaderDate(short = false) {
@@ -96,7 +99,7 @@ export function AdminDashboard() {
 
   // Navigation states
   const [adminTab, setAdminTab] = useState<
-    'qr_monitor' | 'crud_anggota' | 'crud_pembina' | 'rekap' | 'geofence'
+    'qr_monitor' | 'crud_anggota' | 'crud_pembina' | 'crud_purna' | 'purna_docs' | 'rekap' | 'geofence'
   >('qr_monitor');
 
   // Core Firestore states
@@ -126,6 +129,7 @@ export function AdminDashboard() {
   // Search/Filters states
   const [memberSearchAnggota, setMemberSearchAnggota] = useState('');
   const [memberSearchPembina, setMemberSearchPembina] = useState('');
+  const [memberSearchPurna, setMemberSearchPurna] = useState('');
   const [memberFilterRegu, setMemberFilterRegu] = useState('ALL');
   const [memberFilterKelas, setMemberFilterKelas] = useState('ALL');
   const [formContextRole, setFormContextRole] = useState<UserRole>(UserRole.ANGGOTA);
@@ -255,8 +259,8 @@ export function AdminDashboard() {
     setSelectedMemberId(null);
     setFormName('');
     setFormEmail('');
-    setFormClass(role === UserRole.ADMIN ? 'Pembina' : '');
-    setFormSquad(role === UserRole.ADMIN ? 'Staf' : '');
+    setFormClass(role === UserRole.ADMIN ? 'Pembina' : role === UserRole.PURNA ? 'Purna' : '');
+    setFormSquad(role === UserRole.ADMIN ? 'Staf' : role === UserRole.PURNA ? 'Alumni' : '');
     setFormRole(role);
     setFormContextRole(role);
     setFormStatus(UserStatus.AKTIF);
@@ -280,14 +284,19 @@ export function AdminDashboard() {
 
   const handleSaveMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formName.trim() || !formEmail.trim() || !formClass.trim() || !formSquad.trim()) {
-      setFormError('Semua input wajib diisi.');
+
+    if (!formEmail.trim() || !formEmail.includes('@')) {
+      setFormError('Format email tidak valid.');
       return;
     }
 
-    // Basic email validation
-    if (!formEmail.includes('@')) {
-      setFormError('Format email tidak valid.');
+    const isPurnaCreate = !isEditMode && formContextRole === UserRole.PURNA;
+    const resolvedName = formName.trim() || formEmail.trim().split('@')[0];
+    const resolvedClass = formClass.trim() || (formContextRole === UserRole.PURNA ? 'Purna' : '');
+    const resolvedSquad = formSquad.trim() || (formContextRole === UserRole.PURNA ? 'Alumni' : '');
+
+    if (!isPurnaCreate && (!resolvedName || !resolvedClass || !resolvedSquad)) {
+      setFormError('Semua input wajib diisi.');
       return;
     }
 
@@ -298,22 +307,22 @@ export function AdminDashboard() {
         const userRef = doc(db, 'users', selectedMemberId);
         const existingData = users.find((u) => u.userId === selectedMemberId);
         await setDoc(userRef, {
+          ...existingData,
           userId: selectedMemberId,
-          nama: formName.trim(),
+          nama: resolvedName,
           email: emailKey,
-          kelas: formClass.trim(),
-          regu: formSquad.trim(),
+          kelas: resolvedClass,
+          regu: resolvedSquad,
           status: formStatus,
           role: formRole,
           createdAt: existingData?.createdAt || serverTimestamp(),
         });
       } else {
-        // Pre-register by email — profile migrates to users/{auth.uid} on first Google login
         await setDoc(doc(db, 'pre_registered', emailKey), {
-          nama: formName.trim(),
+          nama: resolvedName,
           email: emailKey,
-          kelas: formClass.trim(),
-          regu: formSquad.trim(),
+          kelas: resolvedClass,
+          regu: resolvedSquad,
           status: formStatus,
           role: formRole,
           createdAt: serverTimestamp(),
@@ -323,7 +332,7 @@ export function AdminDashboard() {
       setShowMemberModal(false);
     } catch (err: any) {
       console.error(err);
-      setFormError(err.message || 'Gagal menyimpan profil anggota.');
+      setFormError(err.message || 'Gagal menyimpan data.');
     }
   };
 
@@ -365,6 +374,15 @@ export function AdminDashboard() {
     users,
     UserRole.ADMIN,
     memberSearchPembina,
+    'ALL',
+    'ALL',
+    false
+  );
+
+  const filteredPurna = filterUsersByRole(
+    users,
+    UserRole.PURNA,
+    memberSearchPurna,
     'ALL',
     'ALL',
     false
@@ -485,6 +503,8 @@ export function AdminDashboard() {
               { id: 'admin-tab-qr', key: 'qr_monitor', label: 'QR & Live', icon: QrCode },
               { id: 'admin-tab-crud', key: 'crud_anggota', label: 'Anggota', icon: Users },
               { id: 'admin-tab-pembina', key: 'crud_pembina', label: 'Pembina', icon: Shield },
+              { id: 'admin-tab-purna', key: 'crud_purna', label: 'Purna', icon: Award },
+              { id: 'admin-tab-purna-docs', key: 'purna_docs', label: 'Link Purna', icon: Link2 },
               { id: 'admin-tab-rekap', key: 'rekap', label: 'Rekap', icon: FileSpreadsheet },
               { id: 'admin-tab-geofence', key: 'geofence', label: 'GPS', icon: MapPin },
             ]}
@@ -627,6 +647,28 @@ export function AdminDashboard() {
               onToggleStatus={handleToggleStatus}
             />
           )}
+
+          {adminTab === 'crud_purna' && (
+            <MemberDirectory
+              role={UserRole.PURNA}
+              members={filteredPurna}
+              loading={loadingMembers}
+              search={memberSearchPurna}
+              onSearchChange={setMemberSearchPurna}
+              filterRegu="ALL"
+              onFilterReguChange={() => {}}
+              filterKelas="ALL"
+              onFilterKelasChange={() => {}}
+              uniqueRegus={[]}
+              uniqueClasses={[]}
+              onAdd={() => handleOpenCreateModal(UserRole.PURNA)}
+              onEdit={handleOpenEditModal}
+              onDelete={handleDeleteMember}
+              onToggleStatus={handleToggleStatus}
+            />
+          )}
+
+          {adminTab === 'purna_docs' && <PurnaLinksSettings />}
 
           {/* TAB 3: STATS & HISTORICAL LOGS (REKAP) */}
           {adminTab === 'rekap' && (
@@ -773,10 +815,14 @@ export function AdminDashboard() {
                 {isEditMode
                   ? formContextRole === UserRole.ADMIN
                     ? 'Ubah Data Pembina'
-                    : 'Ubah Data Anggota'
+                    : formContextRole === UserRole.PURNA
+                      ? 'Ubah Data Purna'
+                      : 'Ubah Data Anggota'
                   : formContextRole === UserRole.ADMIN
                     ? 'Pre-Register Pembina Baru'
-                    : 'Pre-Register Anggota Baru'}
+                    : formContextRole === UserRole.PURNA
+                      ? 'Pre-Register Purna Baru'
+                      : 'Pre-Register Anggota Baru'}
               </h3>
               <button
                 id="btn-close-member-modal"
@@ -798,38 +844,44 @@ export function AdminDashboard() {
                 <p className="text-[11px] text-bento-muted bg-bento-soft border border-bento-border rounded-xl p-3">
                   {formContextRole === UserRole.ADMIN
                     ? 'Pembina akan otomatis terhubung saat login dengan email Google yang sama.'
-                    : 'Anggota akan otomatis terhubung saat login dengan email Google yang sama.'}
+                    : formContextRole === UserRole.PURNA
+                      ? 'Purna cukup didaftarkan dengan email. Setelah login, mereka melengkapi biodata dan mengakses link dokumentasi.'
+                      : 'Anggota akan otomatis terhubung saat login dengan email Google yang sama.'}
                 </p>
               )}
 
-              {/* Name field */}
               <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Nama Lengkap</label>
-                <input
-                  id="form-scout-name"
-                  type="text"
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs font-sans focus:outline-none focus:ring-2 focus:ring-emerald-700"
-                  placeholder="Contoh: Farhan Sanjaya"
-                  value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
-                  required
-                />
-              </div>
-
-              {/* Email field */}
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Alamat Email (Digunakan Login Google)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                  Alamat Email (Login Google)
+                </label>
                 <input
                   id="form-scout-email"
                   type="email"
                   className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-700"
-                  placeholder="Contoh: farhan@gmail.com"
+                  placeholder="Contoh: purna@gmail.com"
                   value={formEmail}
                   onChange={(e) => setFormEmail(e.target.value)}
                   required
+                  disabled={isEditMode}
                 />
               </div>
 
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                  Nama Lengkap{formContextRole === UserRole.PURNA && !isEditMode ? ' (opsional)' : ''}
+                </label>
+                <input
+                  id="form-scout-name"
+                  type="text"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs font-sans focus:outline-none focus:ring-2 focus:ring-emerald-700"
+                  placeholder={formContextRole === UserRole.PURNA ? 'Bisa dilengkapi saat login' : 'Contoh: Farhan Sanjaya'}
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  required={formContextRole !== UserRole.PURNA || isEditMode}
+                />
+              </div>
+
+              {formContextRole !== UserRole.PURNA && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-bento-muted uppercase tracking-wider">
@@ -861,6 +913,7 @@ export function AdminDashboard() {
                   />
                 </div>
               </div>
+              )}
 
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-bento-muted uppercase tracking-wider">Status</label>

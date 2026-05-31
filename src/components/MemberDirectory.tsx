@@ -4,8 +4,9 @@
  */
 
 import React from 'react';
-import { Edit2, Plus, Search, Trash2, Users } from 'lucide-react';
+import { Edit2, Plus, Search, Trash2, Users, CheckCircle2, Clock } from 'lucide-react';
 import { UserProfile, UserRole, UserStatus } from '../types';
+import { isPurnaProfileComplete } from '../lib/purnaProfile';
 
 export interface MemberDirectoryProps {
   role: UserRole;
@@ -40,6 +41,14 @@ const copy = {
     searchPlaceholder: 'Cari nama atau email pembina...',
     addLabel: 'Tambah Pembina',
     emptyLabel: 'Belum ada pembina yang cocok dengan pencarian.',
+    showClassSquadFilters: false,
+  },
+  [UserRole.PURNA]: {
+    title: 'Daftar Purna',
+    subtitle: 'Pre-register email purna. Mereka melengkapi biodata setelah login.',
+    searchPlaceholder: 'Cari nama atau email purna...',
+    addLabel: 'Tambah Purna',
+    emptyLabel: 'Belum ada purna yang cocok dengan pencarian.',
     showClassSquadFilters: false,
   },
 };
@@ -159,6 +168,7 @@ export function MemberDirectory({
                   <th className="p-4 rounded-l-2xl">Nama & Email</th>
                   {role === UserRole.ANGGOTA && <th className="p-4">Kelas / Regu</th>}
                   {role === UserRole.ADMIN && <th className="p-4">Unit</th>}
+                  {role === UserRole.PURNA && <th className="p-4">Profil</th>}
                   <th className="p-4 text-center">Status</th>
                   <th className="p-4 text-right rounded-r-2xl">Aksi</th>
                 </tr>
@@ -176,6 +186,8 @@ export function MemberDirectory({
                           <div className="font-semibold">Kelas {member.kelas}</div>
                           <div className="text-bento-muted mt-0.5">Regu {member.regu}</div>
                         </>
+                      ) : role === UserRole.PURNA ? (
+                        <PurnaProfileBadge member={member} />
                       ) : (
                         <div className="text-bento-muted">
                           {member.kelas} · {member.regu}
@@ -239,7 +251,12 @@ function MemberCard({
   onDelete: (userId: string) => void;
   onToggleStatus: (m: UserProfile) => void;
 }) {
-  const avatarBg = role === UserRole.ADMIN ? 'bg-bento-accent text-bento-dark' : 'bg-bento-highlight text-bento-primary';
+  const avatarBg =
+    role === UserRole.ADMIN
+      ? 'bg-bento-accent text-bento-dark'
+      : role === UserRole.PURNA
+        ? 'bg-bento-highlight text-bento-primary'
+        : 'bg-bento-highlight text-bento-primary';
 
   return (
     <div className="scout-member-card">
@@ -262,6 +279,8 @@ function MemberCard({
             <span className="scout-chip">Kelas {member.kelas}</span>
             <span className="scout-chip">Regu {member.regu}</span>
           </>
+        ) : role === UserRole.PURNA ? (
+          <PurnaProfileBadge member={member} />
         ) : (
           <span className="scout-chip">{member.kelas} · {member.regu}</span>
         )}
@@ -278,5 +297,20 @@ function MemberCard({
         </button>
       </div>
     </div>
+  );
+}
+
+function PurnaProfileBadge({ member }: { member: UserProfile }) {
+  const complete = isPurnaProfileComplete(member);
+  return complete ? (
+    <span className="inline-flex items-center gap-1 scout-chip text-lime-800 bg-lime-50 border-lime-200">
+      <CheckCircle2 className="w-3 h-3" />
+      Profil lengkap
+    </span>
+  ) : (
+    <span className="inline-flex items-center gap-1 scout-chip text-amber-800 bg-amber-50 border-amber-200">
+      <Clock className="w-3 h-3" />
+      Menunggu biodata
+    </span>
   );
 }

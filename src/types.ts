@@ -6,6 +6,7 @@
 export enum UserRole {
   ADMIN = 'admin',
   ANGGOTA = 'anggota',
+  PURNA = 'purna',
 }
 
 export enum UserStatus {
@@ -27,7 +28,35 @@ export interface UserProfile {
   status: UserStatus;
   role: UserRole;
   createdAt: any; // Firestore Timestamp
+  /** Purna-only fields */
+  tanggalLahir?: string;
+  alamat?: string;
+  agama?: string;
+  pendidikanSd?: string;
+  pendidikanSmp?: string;
+  pendidikanSma?: string;
+  pendidikanKuliah?: string;
+  statusPerkawinan?: string;
+  profileComplete?: boolean;
 }
+
+/** Link dokumentasi kegiatan untuk Purna — disimpan di settings/purna_links */
+export interface PurnaDocumentationLink {
+  id: string;
+  title: string;
+  url: string;
+  description?: string;
+  order: number;
+}
+
+export interface PurnaLinksConfig {
+  links: PurnaDocumentationLink[];
+  updatedAt?: any;
+}
+
+export const DEFAULT_PURNA_LINKS: PurnaLinksConfig = {
+  links: [],
+};
 
 export interface AttendanceRecord {
   id?: string;

@@ -72,7 +72,7 @@ service cloud.firestore {
         (isOwner(userId)
           && incoming().userId == request.auth.uid
           && incoming().email == request.auth.token.email
-          && incoming().role in ['anggota', 'admin']
+          && incoming().role in ['anggota', 'admin', 'purna']
           && incoming().status in ['aktif', 'nonaktif']
           && incoming().nama is string && incoming().nama.size() <= 100
           && incoming().kelas is string && incoming().kelas.size() <= 20
@@ -85,6 +85,32 @@ service cloud.firestore {
 
       allow update: if isSignedIn() && isValidId(userId) && (
         (isOwner(userId)
+          && existing().role == 'purna'
+          && incoming().userId == existing().userId
+          && incoming().role == existing().role
+          && incoming().status == existing().status
+          && incoming().email == existing().email
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly([
+            'nama', 'kelas', 'regu', 'tanggalLahir', 'alamat', 'agama',
+            'pendidikanSd', 'pendidikanSmp', 'pendidikanSma', 'pendidikanKuliah',
+            'statusPerkawinan', 'profileComplete'
+          ])
+          && incoming().nama is string && incoming().nama.size() <= 100
+          && incoming().kelas is string && incoming().kelas.size() <= 20
+          && incoming().regu is string && incoming().regu.size() <= 30
+          && (!('tanggalLahir' in incoming()) || (incoming().tanggalLahir is string && incoming().tanggalLahir.size() <= 10))
+          && (!('alamat' in incoming()) || (incoming().alamat is string && incoming().alamat.size() <= 500))
+          && (!('agama' in incoming()) || (incoming().agama is string && incoming().agama.size() <= 50))
+          && (!('pendidikanSd' in incoming()) || (incoming().pendidikanSd is string && incoming().pendidikanSd.size() <= 120))
+          && (!('pendidikanSmp' in incoming()) || (incoming().pendidikanSmp is string && incoming().pendidikanSmp.size() <= 120))
+          && (!('pendidikanSma' in incoming()) || (incoming().pendidikanSma is string && incoming().pendidikanSma.size() <= 120))
+          && (!('pendidikanKuliah' in incoming()) || (incoming().pendidikanKuliah is string && incoming().pendidikanKuliah.size() <= 120))
+          && (!('statusPerkawinan' in incoming()) || (incoming().statusPerkawinan is string && incoming().statusPerkawinan.size() <= 30))
+          && (!('profileComplete' in incoming()) || incoming().profileComplete is bool))
+        ||
+        (isOwner(userId)
+          && existing().role != 'purna'
           && incoming().userId == existing().userId
           && incoming().role == existing().role
           && incoming().status == existing().status

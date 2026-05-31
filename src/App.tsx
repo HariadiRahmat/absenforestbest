@@ -6,9 +6,12 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProfileForm } from './components/ProfileForm';
+import { PurnaProfileForm } from './components/PurnaProfileForm';
+import { PurnaDashboard } from './components/PurnaDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AnggotaDashboard } from './components/AnggotaDashboard';
 import { UserRole, UserStatus } from './types';
+import { isPurnaProfileComplete } from './lib/purnaProfile';
 import { Compass, LogOut, ShieldCheck, QrCode, MapPin } from 'lucide-react';
 import { getGoogleSignInErrorMessage } from './lib/authErrors';
 import { Alert } from './components/ui/Alert';
@@ -153,6 +156,13 @@ function ScoutAppContent() {
         <AdminDashboard />
       </div>
     );
+  }
+
+  if (userProfile && userProfile.role === UserRole.PURNA) {
+    if (!isPurnaProfileComplete(userProfile)) {
+      return <PurnaProfileForm />;
+    }
+    return <PurnaDashboard />;
   }
 
   return <AnggotaDashboard />;
