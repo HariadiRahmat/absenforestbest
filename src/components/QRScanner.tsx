@@ -85,18 +85,8 @@ interface QRScannerProps {
   errorMsg: string | null;
 }
 
-// ---------------------------------------------------------------------------
-// Helper: tanggal lokal YYYY-MM-DD (10 char persis)
-// ---------------------------------------------------------------------------
-function getTodayString(): string {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = String(now.getMonth() + 1).padStart(2, '0');
-  const d = String(now.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`; // Tepat 10 karakter → lolos rules tanggal.size() == 10
-}
-
-// ---------------------------------------------------------------------------
+import { parseQrScan, validateQrForToday } from '../lib/qrPayload';
+import { getTodayStr } from '../lib/dateUtils';
 // Validasi token sebelum submit (sesuai rules qrToken max 100 char)
 // ---------------------------------------------------------------------------
 function validateToken(token: string): string | null {
@@ -167,17 +157,21 @@ export function QRScanner({
   // -------------------------------------------------------------------------
   // Build payload — semua field sesuai rules
   // -------------------------------------------------------------------------
-  function buildPayload(token: string): AttendancePayload {
-    const safeName = (memberName ?? '').slice(0, 100); // guard jika prop undefined/null
+  function buildPayload(raw: string): AttendancePayload {
+    const parsed = parseQrScan(raw);
+    const dateError = validateQrForToday(parsed);
+    if (dateError) throw new Error(dateError);
+
+    const safeName = (memberName ?? '').slice(0, 100);
     return {
       userId,
-      nama: safeName,                  // max 100 char
-      tanggal: getTodayString(),       // YYYY-MM-DD, tepat 10 char
-      qrToken: token.trim().slice(0, 100), // max 100 char
-      status: 'hadir',                 // rules mewajibkan nilai ini
-      latitude: gpsCoords.lat,         // number | null
-      longitude: gpsCoords.lng,        // number | null
-      timestamp: new Date(),           // parent konversi ke Firestore Timestamp
+      nama: safeName,
+      tanggal: parsed.date,
+      qrToken: parsed.token.slice(0, 100),
+      status: 'hadir',
+      latitude: gpsCoords.lat,
+      longitude: gpsCoords.lng,
+      timestamp: new Date(),
     };
   }
 
@@ -191,12 +185,19 @@ export function QRScanner({
       setLocalError(validErr);
       return;
     }
-    const payload = buildPayload(rawToken);
+    let payload: AttendancePayload;
+    try {
+      payload = buildPayload(rawToken);
+    } catch (err) {
+      setLocalError(err instanceof Error ? err.message : 'QR tidak valid.');
+      return;
+    }
     try {
       await onScanSuccess(payload);
       setScanSuccess(true);
-    } catch {
+    } catch (err) {
       setScanSuccess(false);
+      setLocalError(err instanceof Error ? err.message : 'Gagal absen.');
     }
   }
 
@@ -309,7 +310,7 @@ export function QRScanner({
         <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
         <span>
           Tanggal validasi:{' '}
-          <span className="font-mono font-bold text-slate-700">{getTodayString()}</span>
+          <span className="font-mono font-bold text-slate-700">{getTodayStr()}</span>
           {' · '}Anggota: <span className="font-semibold text-slate-700">{memberName || '—'}</span>
         </span>
       </div>
@@ -319,7 +320,8 @@ export function QRScanner({
         <div className="w-full mb-4 p-3 bg-red-50 text-red-900 border border-red-200 rounded-xl text-xs flex gap-2 items-start">
           <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
           <div>
-            <span className="font-bold">Gagal Absen:</span> {displayError}
+            <span className="font-bold">Gagal Absen:</span>{' '}
+            <span className="whitespace-pre-line">{displayError}</span>
           </div>
         </div>
       )}
@@ -345,7 +347,7 @@ export function QRScanner({
           <p className="font-sans text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
             Sorot kamera ke QR code dinamis yang dipasang Pembina di papan dashboard. Token QR
             diverifikasi langsung ke Firestore{' '}
-            <span className="font-semibold text-emerald-700">qr_codes/{getTodayString()}</span>.
+            <span className="font-semibold text-emerald-700">qr_codes/{getTodayStr()}</span>.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 w-full px-6">
             <button
@@ -413,7 +415,7 @@ export function QRScanner({
           <p className="font-sans text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
             Masukkan token harian yang tertera di layar Pembina. Token akan dicocokkan ke{' '}
             <span className="font-mono font-semibold text-emerald-700">
-              qr_codes/{getTodayString()}
+              qr_codes/{getTodayStr()}
             </span>{' '}
             di Firestore (max 100 karakter).
           </p>

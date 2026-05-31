@@ -5,6 +5,7 @@
 
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { buildQrContent } from '../lib/qrPayload';
 import { QrCode, Download, RefreshCw, Copy, Check, Calendar, ShieldCheck, HelpCircle } from 'lucide-react';
 
 interface QRGeneratorProps {
@@ -21,7 +22,8 @@ export function QRGenerator({ token, dateStr, onRotateToken, loading, isActive }
 
   useEffect(() => {
     if (token) {
-      QRCode.toDataURL(token, {
+      const qrContent = buildQrContent(token, dateStr);
+      QRCode.toDataURL(qrContent, {
         width: 320,
         margin: 2,
         color: {
@@ -39,7 +41,7 @@ export function QRGenerator({ token, dateStr, onRotateToken, loading, isActive }
     } else {
       setQrUrl('');
     }
-  }, [token]);
+  }, [token, dateStr]);
 
   const handleCopyToken = () => {
     if (!token) return;

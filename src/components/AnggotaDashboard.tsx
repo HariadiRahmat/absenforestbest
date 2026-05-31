@@ -10,6 +10,8 @@ import { sortByTimestampDesc } from '../lib/normalizeUserProfile';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { AttendanceRecord, AttendanceStatus, OperationType } from '../types';
 import { QRScanner, AttendancePayload } from './QRScanner';
+import { getAttendanceErrorMessage } from '../lib/attendanceErrors';
+import { getTodayStr } from '../lib/dateUtils';
 import {
   Compass,
   CheckCircle,
@@ -27,14 +29,6 @@ import {
   Flame,
   ChevronRight
 } from 'lucide-react';
-
-function getTodayStr() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 export function AnggotaDashboard() {
   const { currentUser, userProfile, updateProfileDetails, logout } = useAuth();
@@ -116,14 +110,9 @@ export function AnggotaDashboard() {
 
       await setDoc(recordRef, newRecord);
       setScanSuccess(true);
-    } catch (err: any) {
-      console.warn("Scan check-in registration failed:", err);
-      // Format error
-      let displayError = err.message || String(err);
-      if (displayError.includes('permission') || displayError.includes('Permission')) {
-        displayError = 'Token QR Code tidak valid untuk hari ini atau Anda menggunakan token hari sebelumnya.';
-      }
-      setScanError(displayError);
+    } catch (err: unknown) {
+      console.warn('Scan check-in registration failed:', err);
+      setScanError(getAttendanceErrorMessage(err));
     } finally {
       setCheckingIn(false);
     }

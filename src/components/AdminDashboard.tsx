@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { db, logFirestoreError, handleFirestoreError } from '../lib/firebase';
 import { normalizeUserProfile, sortByTimestampDesc } from '../lib/normalizeUserProfile';
+import { getTodayStr } from '../lib/dateUtils';
 import {
   collection,
   query,
@@ -39,14 +40,6 @@ import {
   Sparkles,
   BarChart2
 } from 'lucide-react';
-
-function getTodayStr() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 function formatHeaderDate() {
   return new Date().toLocaleDateString('id-ID', {
