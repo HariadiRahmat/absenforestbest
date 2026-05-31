@@ -13,7 +13,7 @@ import {
   signOut,
   onAuthStateChanged,
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { normalizeUserProfile } from '../lib/normalizeUserProfile';
@@ -437,16 +437,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const updateProfileDetails = async (nama: string, kelas: string, regu: string) => {
     if (!currentUser || !userProfile) throw new Error('No user profile to update');
 
+    const trimmedName = nama.trim();
+    const trimmedKelas = kelas.trim();
+    const trimmedRegu = regu.trim();
     const userRef = doc(db, 'users', currentUser.uid);
-    const updatedProfile = {
-      ...userProfile,
-      nama,
-      kelas: userProfile.role === UserRole.ADMIN ? userProfile.kelas : kelas,
-      regu: userProfile.role === UserRole.ADMIN ? userProfile.regu : regu,
+    const nextKelas = userProfile.role === UserRole.ADMIN ? userProfile.kelas : trimmedKelas;
+    const nextRegu = userProfile.role === UserRole.ADMIN ? userProfile.regu : trimmedRegu;
+    const patch = {
+      nama: trimmedName,
+      kelas: nextKelas,
+      regu: nextRegu,
     };
 
     try {
-      await setDoc(userRef, stripUndefined(updatedProfile as Record<string, unknown>));
+      await updateDoc(userRef, patch);
+      setUserProfile({
+        ...userProfile,
+        ...patch,
+      });
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `users/${currentUser.uid}`);
     }

@@ -13,6 +13,7 @@ import { verifyGeofence } from '../lib/geofence';
 import { AttendanceRecord, AttendanceStatus, OperationType } from '../types';
 import { QRScanner, AttendancePayload } from './QRScanner';
 import { parseAttendanceError } from '../lib/attendanceErrors';
+import { parseFormAlertMessage } from '../lib/friendlyErrors';
 import type { FriendlyError } from './ui/Alert';
 import { Alert } from './ui/Alert';
 import { TabNav } from './ui/TabNav';
@@ -49,8 +50,17 @@ export function AnggotaDashboard() {
   const [newKelas, setNewKelas] = useState(userProfile?.kelas || '');
   const [newRegu, setNewRegu] = useState(userProfile?.regu || '');
   const [profileSaving, setProfileSaving] = useState(false);
+  const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
 
   const todayStr = getTodayStr();
+
+  useEffect(() => {
+    if (!isEditingProfile && userProfile) {
+      setNewName(userProfile.nama || '');
+      setNewKelas(userProfile.kelas || '');
+      setNewRegu(userProfile.regu || '');
+    }
+  }, [userProfile, isEditingProfile]);
 
   // Listen to Personal Attendance History
   useEffect(() => {
@@ -125,15 +135,28 @@ export function AnggotaDashboard() {
     e.preventDefault();
     if (!newName.trim() || !newKelas.trim() || !newRegu.trim()) return;
     setProfileSaving(true);
+    setProfileSaveError(null);
     try {
       await updateProfileDetails(newName.trim(), newKelas.trim(), newRegu.trim());
       setIsEditingProfile(false);
     } catch (err) {
-      console.error(err);
+      const raw = err instanceof Error ? err.message : String(err);
+      let message = raw;
+      try {
+        const parsed = JSON.parse(raw) as { error?: string };
+        message = parsed.error || raw;
+      } catch {
+        // keep raw message
+      }
+      setProfileSaveError(message);
     } finally {
       setProfileSaving(false);
     }
   };
+
+  const profileSaveAlert = profileSaveError
+    ? parseFormAlertMessage(profileSaveError, 'Gagal menyimpan profil')
+    : null;
 
   // Calculate consecutive-day streak (ends today if attended, otherwise yesterday)
   const hadirDates = new Set(
@@ -346,6 +369,17 @@ export function AnggotaDashboard() {
                 <h3 className="font-sans text-base font-extrabold text-bento-text">Kelola Informasi Profil</h3>
               </div>
 
+              {profileSaveAlert && (
+                <Alert
+                  variant="error"
+                  title={profileSaveAlert.title}
+                  message={profileSaveAlert.message}
+                  tips={profileSaveAlert.tips}
+                  className="mb-4"
+                  onDismiss={() => setProfileSaveError(null)}
+                />
+              )}
+
               {isEditingProfile ? (
                 <form onSubmit={handleSaveProfile} className="space-y-4">
                   <div className="space-y-1">
@@ -389,7 +423,10 @@ export function AnggotaDashboard() {
                     <button
                       id="btn-cancel-edit-profile"
                       type="button"
-                      onClick={() => setIsEditingProfile(false)}
+                      onClick={() => {
+                        setIsEditingProfile(false);
+                        setProfileSaveError(null);
+                      }}
                       disabled={profileSaving}
                       className="flex-1 py-3 scout-btn-secondary text-sm"
                     >
@@ -439,6 +476,7 @@ export function AnggotaDashboard() {
                       setNewName(userProfile?.nama || '');
                       setNewKelas(userProfile?.kelas || '');
                       setNewRegu(userProfile?.regu || '');
+                      setProfileSaveError(null);
                       setIsEditingProfile(true);
                     }}
                     className="w-full scout-btn-secondary py-3.5 text-sm"
