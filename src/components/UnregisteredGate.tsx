@@ -6,7 +6,6 @@
 import React from 'react';
 import { LogOut, ShieldAlert } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { Alert } from './ui/Alert';
 
 export function UnregisteredGate() {
   const { logout, currentUser } = useAuth();
@@ -18,24 +17,12 @@ export function UnregisteredGate() {
           <ShieldAlert className="w-8 h-8 text-bento-primary" />
         </div>
 
-        <h2 className="text-xl font-bold text-bento-text">Akun Belum Terdaftar</h2>
-        <p className="text-sm text-bento-muted mt-2 leading-relaxed">
-          Email <span className="font-mono text-bento-text">{currentUser?.email}</span> belum
-          didaftarkan oleh Pembina.
+        <h2 className="text-xl font-bold text-bento-text">Akses Memerlukan Validasi</h2>
+        <p className="text-sm text-bento-muted mt-3 leading-relaxed">
+          <span className="font-mono text-bento-text">{currentUser?.email}</span>
         </p>
 
-        <Alert
-          variant="warning"
-          title="Akses memerlukan validasi Pembina"
-          message="Setiap pengguna harus didaftarkan terlebih dahulu. Pembina akan menetapkan role Anda sebagai Anggota, Pembina, atau Purna."
-          tips={[
-            'Belum daftar? Kembali ke halaman login dan pilih Daftar.',
-            'Sudah daftar? Tunggu Pembina menyetujui pendaftaran Anda.',
-          ]}
-          className="mb-6 mt-5 text-left"
-        />
-
-        <button onClick={logout} className="w-full scout-btn-secondary py-3 text-sm">
+        <button onClick={logout} className="w-full scout-btn-secondary py-3 text-sm mt-8">
           <LogOut className="w-4 h-4" />
           Keluar
         </button>
