@@ -5,8 +5,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { db, handleFirestoreError } from '../lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { db, logFirestoreError } from '../lib/firebase';
+import { sortByTimestampDesc } from '../lib/normalizeUserProfile';
+import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { AttendanceRecord, AttendanceStatus, OperationType } from '../types';
 import { QRScanner, AttendancePayload } from './QRScanner';
 import {
@@ -61,14 +62,13 @@ export function AnggotaDashboard() {
 
     const q = query(
       collection(db, 'attendance'),
-      where('userId', '==', currentUser.uid),
-      orderBy('timestamp', 'desc')
+      where('userId', '==', currentUser.uid)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const records: AttendanceRecord[] = [];
       let foundToday: AttendanceRecord | null = null;
-      
+
       snapshot.forEach((docSnap) => {
         const item = { id: docSnap.id, ...docSnap.data() } as AttendanceRecord;
         records.push(item);
@@ -76,11 +76,12 @@ export function AnggotaDashboard() {
           foundToday = item;
         }
       });
-      
-      setHistory(records);
+
+      const sorted = sortByTimestampDesc(records);
+      setHistory(sorted);
       setTodayRecord(foundToday);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'attendance');
+      logFirestoreError(error, OperationType.LIST, 'attendance');
     });
 
     return () => unsubscribe();

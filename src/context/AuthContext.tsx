@@ -15,6 +15,7 @@ import {
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
+import { normalizeUserProfile } from '../lib/normalizeUserProfile';
 import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage } from '../lib/authErrors';
 import { UserProfile, UserRole, UserStatus, OperationType } from '../types';
 
@@ -34,9 +35,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase();
 
+const BOOTSTRAP_ADMIN_EMAILS = new Set(
+  [ADMIN_EMAIL, 'hariadirahmat2003@gmail.com', 'admin@gmail.com'].filter(Boolean) as string[]
+);
+
 function isBootstrapAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
-  return ADMIN_EMAIL ? email.toLowerCase() === ADMIN_EMAIL : false;
+  return BOOTSTRAP_ADMIN_EMAILS.has(email.toLowerCase());
 }
 
 async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnType<typeof doc>): Promise<boolean> {
@@ -97,7 +102,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         userRef,
         async (docSnap) => {
           if (docSnap.exists()) {
-            setUserProfile(docSnap.data() as UserProfile);
+            setUserProfile(normalizeUserProfile(user.uid, docSnap.data() as Record<string, unknown>));
             setLoading(false);
             return;
           }

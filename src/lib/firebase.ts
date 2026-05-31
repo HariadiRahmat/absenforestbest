@@ -37,7 +37,7 @@ async function testConnection() {
 }
 testConnection();
 
-export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+export function logFirestoreError(error: unknown, operationType: OperationType, path: string | null): void {
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
@@ -55,5 +55,13 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path,
   };
   console.error('Firestore Error Captured:', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null): never {
+  logFirestoreError(error, operationType, path);
+  throw new Error(JSON.stringify({
+    error: error instanceof Error ? error.message : String(error),
+    operationType,
+    path,
+  }));
 }

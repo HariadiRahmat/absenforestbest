@@ -4,17 +4,16 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { db, handleFirestoreError } from '../lib/firebase';
+import { db, logFirestoreError, handleFirestoreError } from '../lib/firebase';
+import { normalizeUserProfile, sortByTimestampDesc } from '../lib/normalizeUserProfile';
 import {
   collection,
   query,
   where,
-  orderBy,
   onSnapshot,
   setDoc,
   doc,
   deleteDoc,
-  getDocs,
   serverTimestamp,
   updateDoc
 } from 'firebase/firestore';
@@ -96,32 +95,32 @@ export function AdminDashboard() {
   useEffect(() => {
     setLoadingMembers(true);
     // 1. Listen to all Scout Members
-    const qUsers = query(collection(db, 'users'), orderBy('createdAt', 'desc'));
+    const qUsers = query(collection(db, 'users'));
     const unsubUsers = onSnapshot(qUsers, (snapshot) => {
       const uList: UserProfile[] = [];
       snapshot.forEach((d) => {
-        uList.push({ ...d.data() } as UserProfile);
+        uList.push(normalizeUserProfile(d.id, d.data() as Record<string, unknown>));
       });
+      uList.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
       setUsers(uList);
       setLoadingMembers(false);
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'users');
+      logFirestoreError(error, OperationType.LIST, 'users');
+      setLoadingMembers(false);
     });
 
-    // 2. Listen to Attendance logs specifically for Today
     const qAttendToday = query(
       collection(db, 'attendance'),
-      where('tanggal', '==', todayStr),
-      orderBy('timestamp', 'desc')
+      where('tanggal', '==', todayStr)
     );
     const unsubAttend = onSnapshot(qAttendToday, (snapshot) => {
       const aList: AttendanceRecord[] = [];
       snapshot.forEach((d) => {
         aList.push({ id: d.id, ...d.data() } as AttendanceRecord);
       });
-      setAttendanceToday(aList);
+      setAttendanceToday(sortByTimestampDesc(aList));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'attendance');
+      logFirestoreError(error, OperationType.LIST, 'attendance');
     });
 
     // 3. Listen to all QR code modifications of today
@@ -134,19 +133,18 @@ export function AdminDashboard() {
         await autoGenerateTodayQR();
       }
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, `qr_codes/${todayStr}`);
+      logFirestoreError(error, OperationType.GET, `qr_codes/${todayStr}`);
     });
 
-    // 4. Listen to entire general history for stats
-    const qAllAttend = query(collection(db, 'attendance'), orderBy('timestamp', 'desc'));
+    const qAllAttend = query(collection(db, 'attendance'));
     const unsubAllAttend = onSnapshot(qAllAttend, (snapshot) => {
       const list: AttendanceRecord[] = [];
       snapshot.forEach((docSnap) => {
         list.push({ id: docSnap.id, ...docSnap.data() } as AttendanceRecord);
       });
-      setHistoricalAttendance(list);
+      setHistoricalAttendance(sortByTimestampDesc(list));
     }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'attendance');
+      logFirestoreError(error, OperationType.LIST, 'attendance');
     });
 
     return () => {
@@ -288,22 +286,26 @@ export function AdminDashboard() {
 
   // Filter lists
   const filteredMembers = users.filter((member) => {
-    // Exclude administrators if desired, or show all. Let's show all and highlight administrators
-    const matchesSearch =
-      member.nama.toLowerCase().includes(memberSearch.toLowerCase()) ||
-      member.email.toLowerCase().includes(memberSearch.toLowerCase()) ||
-      member.kelas.toLowerCase().includes(memberSearch.toLowerCase()) ||
-      member.regu.toLowerCase().includes(memberSearch.toLowerCase());
+    const search = memberSearch.toLowerCase();
+    const nama = (member.nama ?? '').toLowerCase();
+    const email = (member.email ?? '').toLowerCase();
+    const kelas = (member.kelas ?? '').toLowerCase();
+    const regu = (member.regu ?? '').toLowerCase();
 
-    const matchesRegu = memberFilterRegu === 'ALL' || member.regu.toUpperCase() === memberFilterRegu.toUpperCase();
-    const matchesKelas = memberFilterKelas === 'ALL' || member.kelas.toUpperCase() === memberFilterKelas.toUpperCase();
+    const matchesSearch =
+      nama.includes(search) ||
+      email.includes(search) ||
+      kelas.includes(search) ||
+      regu.includes(search);
+
+    const matchesRegu = memberFilterRegu === 'ALL' || (member.regu ?? '').toUpperCase() === memberFilterRegu.toUpperCase();
+    const matchesKelas = memberFilterKelas === 'ALL' || (member.kelas ?? '').toUpperCase() === memberFilterKelas.toUpperCase();
 
     return matchesSearch && matchesRegu && matchesKelas;
   });
 
-  // Get unique lists of Squads/Classes for filters
-  const uniqueRegus = Array.from(new Set(users.map(u => u.regu.toUpperCase()))).filter(Boolean);
-  const uniqueClasses = Array.from(new Set(users.map(u => u.kelas.toUpperCase()))).filter(Boolean);
+  const uniqueRegus = Array.from(new Set(users.map((u) => (u.regu ?? '').toUpperCase()))).filter(Boolean);
+  const uniqueClasses = Array.from(new Set(users.map((u) => (u.kelas ?? '').toUpperCase()))).filter(Boolean);
 
   // Grouped monthly chart coordinates mock stats
   const checkinsByDate: { [date: string]: number } = {};
