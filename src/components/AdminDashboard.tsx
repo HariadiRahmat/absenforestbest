@@ -121,7 +121,13 @@ export function AdminDashboard() {
     const qrRef = doc(db, 'qr_codes', todayStr);
     const unsubQR = onSnapshot(qrRef, async (docSnap) => {
       if (docSnap.exists()) {
-        setActiveQR(docSnap.data() as QRCodeConfig);
+        const qrData = docSnap.data() as QRCodeConfig;
+        setActiveQR(qrData);
+        try {
+          await syncActiveCheckin(qrData);
+        } catch (err) {
+          console.warn('Sync active_checkin failed:', err);
+        }
       } else {
         // Automatically bootstrap today's QR code on Pembina dashboard open!
         await autoGenerateTodayQR();
@@ -156,6 +162,19 @@ export function AdminDashboard() {
   }, [todayStr]);
 
   // Method to auto generate a dynamic QR
+  const syncActiveCheckin = async (qr: QRCodeConfig) => {
+    await setDoc(
+      doc(db, 'settings', 'active_checkin'),
+      {
+        date: qr.date,
+        token: qr.token,
+        active: qr.active ?? true,
+        updatedAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+  };
+
   const autoGenerateTodayQR = async () => {
     setLoadingQR(true);
     try {
@@ -172,6 +191,7 @@ export function AdminDashboard() {
       };
 
       await setDoc(doc(db, 'qr_codes', todayStr), qrConfig);
+      await syncActiveCheckin(qrConfig);
     } catch (err) {
       console.error("Auto generate QR failed:", err);
     } finally {

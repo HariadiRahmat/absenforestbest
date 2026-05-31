@@ -10,7 +10,7 @@ export function getAttendanceErrorMessage(error: unknown): string {
     return [
       'Absensi ditolak Firestore. Kemungkinan penyebab:',
       '• Token QR sudah di-rotate Pembina — scan QR yang sedang tampil sekarang',
-      '• Dokumen qr_codes/hari-ini belum ada — Pembina buka dashboard dulu',
+      '• settings/active_checkin belum ada — Pembina buka dashboard dulu',
       '• Firestore Rules belum publish — hubungi Pembina',
     ].join('\n');
   }

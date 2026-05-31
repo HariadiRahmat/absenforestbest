@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { db, logFirestoreError } from '../lib/firebase';
 import { sortByTimestampDesc } from '../lib/normalizeUserProfile';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
+import { verifyActiveCheckin } from '../lib/activeCheckin';
 import { AttendanceRecord, AttendanceStatus, OperationType } from '../types';
 import { QRScanner, AttendancePayload } from './QRScanner';
 import { getAttendanceErrorMessage } from '../lib/attendanceErrors';
@@ -97,13 +98,15 @@ export function AnggotaDashboard() {
         throw new Error('Anda sudah melakukan absensi hari ini.');
       }
 
+      await verifyActiveCheckin(payload.tanggal, payload.qrToken);
+
       const newRecord: AttendanceRecord = {
         userId: payload.userId,
         nama: payload.nama,
         tanggal: payload.tanggal,
         timestamp: serverTimestamp(),
-        latitude: payload.latitude,
-        longitude: payload.longitude,
+        latitude: payload.latitude ?? null,
+        longitude: payload.longitude ?? null,
         status: AttendanceStatus.HADIR,
         qrToken: payload.qrToken,
       };

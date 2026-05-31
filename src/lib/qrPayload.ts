@@ -12,7 +12,7 @@ export function parseQrScan(raw: string): ParsedQrPayload {
   if (trimmed.startsWith('{')) {
     try {
       const json = JSON.parse(trimmed) as { d?: string; t?: string; token?: string; date?: string };
-      const token = String(json.t ?? json.token ?? '').trim();
+      const token = sanitizeToken(String(json.t ?? json.token ?? ''));
       const date = String(json.d ?? json.date ?? getTodayStr()).trim();
       if (token) return { token, date };
     } catch {
@@ -20,7 +20,12 @@ export function parseQrScan(raw: string): ParsedQrPayload {
     }
   }
 
-  return { token: trimmed, date: getTodayStr() };
+  return { token: sanitizeToken(trimmed), date: getTodayStr() };
+}
+
+/** Bersihkan token dari karakter liar hasil scan */
+export function sanitizeToken(token: string): string {
+  return token.trim().replace(/[^\w\-]/g, '');
 }
 
 export function buildQrContent(token: string, date: string): string {
