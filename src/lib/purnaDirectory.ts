@@ -1,4 +1,5 @@
 import { filterUsersByRole } from './filterUsers';
+import { getProtectedAdminEmails, isProtectedAdminAccount } from './protectedAdmin';
 import {
   MemberRegistration,
   PurnaApprovalStatus,
@@ -122,7 +123,23 @@ export function buildMemberDirectoryList(
     list.push(approvedApplicationToProfile(app, appRole));
   }
 
-  list.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+  const protectedOrder = new Map(
+    getProtectedAdminEmails().map((email, index) => [email, index])
+  );
+
+  list.sort((a, b) => {
+    const aProtected = isProtectedAdminAccount(a.email);
+    const bProtected = isProtectedAdminAccount(b.email);
+    if (aProtected !== bProtected) return aProtected ? -1 : 1;
+
+    if (aProtected && bProtected) {
+      const aRank = protectedOrder.get(a.email.toLowerCase()) ?? 0;
+      const bRank = protectedOrder.get(b.email.toLowerCase()) ?? 0;
+      if (aRank !== bRank) return aRank - bRank;
+    }
+
+    return (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0);
+  });
 
   return filterUsersByRole(list, role, search, reguFilter, kelasFilter, applyClassSquadFilters);
 }
