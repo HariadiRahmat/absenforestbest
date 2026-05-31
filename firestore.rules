@@ -114,7 +114,12 @@ service cloud.firestore {
 
     // ── Attendance ─────────────────────────────────────────────────────────
     match /attendance/{attendanceId} {
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // Izinkan get dokumen belum ada (cek duplikat sebelum create)
+      allow get: if isSignedIn() && (
+        !exists(/databases/$(database)/documents/attendance/$(attendanceId))
+        || resource.data.userId == request.auth.uid
+        || isAdmin()
+      );
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
 
       allow create: if isSignedIn() && isValidId(attendanceId) && (

@@ -13,7 +13,7 @@
  *   - latitude      : null | number
  *   - longitude     : null | number
  *   - timestamp     : Firestore Timestamp (server atau client Timestamp)
- *   - qr_codes/{tanggal}.token == qrToken  &&  .active == true
+ *   - settings/active_checkin.token == qrToken  &&  .active == true
  *
  * Perubahan utama dari versi sebelumnya:
  *   1. onScanSuccess sekarang menerima AttendancePayload (bukan string mentah)
@@ -305,7 +305,7 @@ export function QRScanner({
         </div>
       </div>
 
-      {/* Info tanggal & context — bantu debug jika qr_codes/{tanggal} tidak ada */}
+      {/* Info tanggal & context */}
       <div className="w-full flex items-center gap-1.5 text-xs px-3 py-1.5 bg-slate-50 rounded-xl mb-4 border border-slate-100 text-slate-500">
         <ShieldCheck className="w-3.5 h-3.5 text-slate-400 shrink-0" />
         <span>
@@ -346,8 +346,8 @@ export function QRScanner({
           <h3 className="font-sans text-lg font-bold text-slate-800">Scan QR Code Absen</h3>
           <p className="font-sans text-xs text-slate-500 mt-1 max-w-xs leading-relaxed">
             Sorot kamera ke QR code dinamis yang dipasang Pembina di papan dashboard. Token QR
-            diverifikasi langsung ke Firestore{' '}
-            <span className="font-semibold text-emerald-700">qr_codes/{getTodayStr()}</span>.
+            diverifikasi ke{' '}
+            <span className="font-semibold text-emerald-700">settings/active_checkin</span>.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 w-full px-6">
             <button
@@ -415,9 +415,9 @@ export function QRScanner({
           <p className="font-sans text-xs text-slate-500 mt-1 mb-4 leading-relaxed">
             Masukkan token harian yang tertera di layar Pembina. Token akan dicocokkan ke{' '}
             <span className="font-mono font-semibold text-emerald-700">
-              qr_codes/{getTodayStr()}
+              settings/active_checkin
             </span>{' '}
-            di Firestore (max 100 karakter).
+            (max 100 karakter).
           </p>
 
           <input
