@@ -4,7 +4,11 @@
  */
 
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import {
+  initializeAuth,
+  browserLocalPersistence,
+  browserPopupRedirectResolver,
+} from 'firebase/auth';
 import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { OperationType, FirestoreErrorInfo } from '../types';
 
@@ -26,7 +30,10 @@ const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID;
 export const db = firestoreDatabaseId
   ? initializeFirestore(app, firestoreSettings, firestoreDatabaseId)
   : initializeFirestore(app, firestoreSettings);
-export const auth = getAuth(app);
+export const auth = initializeAuth(app, {
+  persistence: browserLocalPersistence,
+  popupRedirectResolver: browserPopupRedirectResolver,
+});
 
 async function testConnection() {
   try {

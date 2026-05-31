@@ -17,7 +17,7 @@ import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, deleteDoc } from 'fir
 import { FirebaseError } from 'firebase/app';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { normalizeUserProfile } from '../lib/normalizeUserProfile';
-import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage } from '../lib/authErrors';
+import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage, isMissingRedirectStateError } from '../lib/authErrors';
 import { UserProfile, UserRole, UserStatus, OperationType, PurnaApprovalStatus } from '../types';
 import { isPurnaProfileComplete, PurnaProfileFormData } from '../lib/purnaProfile';
 import { normalizePurnaRegistration } from '../lib/purnaRegistration';
@@ -33,6 +33,7 @@ interface AuthContextType {
   clearAuthError: () => void;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  retryProfileSetup: () => Promise<void>;
   registerProfile: (nama: string, kelas: string, regu: string) => Promise<void>;
   updateProfileDetails: (nama: string, kelas: string, regu: string) => Promise<void>;
   updatePurnaProfile: (fields: PurnaProfileFormData) => Promise<void>;
@@ -117,10 +118,108 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const profileUnsubRef = useRef<(() => void) | null>(null);
+  const preRegisteredUnsubRef = useRef<(() => void) | null>(null);
+  const migratingRef = useRef(false);
+  const currentUserRef = useRef<FirebaseUser | null>(null);
+
+  const clearPreRegisteredListener = () => {
+    preRegisteredUnsubRef.current?.();
+    preRegisteredUnsubRef.current = null;
+  };
+
+  const safeMigrate = async (user: FirebaseUser, userRef: ReturnType<typeof doc>): Promise<boolean> => {
+    if (migratingRef.current) return false;
+    migratingRef.current = true;
+    try {
+      return await migratePreRegisteredProfile(user, userRef);
+    } finally {
+      migratingRef.current = false;
+    }
+  };
+
+  const resolveRegistrationGate = async (emailKey: string): Promise<AuthGateStatus> => {
+    const regSnap = await getDoc(doc(db, 'purna_registrations', emailKey));
+    if (!regSnap.exists()) return 'unregistered';
+
+    const reg = normalizePurnaRegistration(emailKey, regSnap.data() as Record<string, unknown>);
+    if (reg.approvalStatus === PurnaApprovalStatus.PENDING) return 'purna_pending';
+    if (reg.approvalStatus === PurnaApprovalStatus.REJECTED) return 'purna_rejected';
+    if (reg.approvalStatus === PurnaApprovalStatus.APPROVED) {
+      return 'approved_awaiting_login';
+    }
+    return 'unregistered';
+  };
+
+  const watchPreRegisteredForMigration = (user: FirebaseUser, userRef: ReturnType<typeof doc>) => {
+    const emailKey = user.email?.toLowerCase();
+    if (!emailKey) return;
+
+    clearPreRegisteredListener();
+    preRegisteredUnsubRef.current = onSnapshot(
+      doc(db, 'pre_registered', emailKey),
+      async (preSnap) => {
+        if (!preSnap.exists() || currentUserRef.current?.uid !== user.uid) return;
+
+        const migrated = await safeMigrate(user, userRef);
+        if (migrated) {
+          setAuthGate(null);
+          clearPreRegisteredListener();
+        }
+      },
+      (error) => {
+        console.error('Pre-register snapshot error:', error);
+      }
+    );
+  };
+
+  const resolveSignedInUser = async (user: FirebaseUser) => {
+    const userRef = doc(db, 'users', user.uid);
+    const emailKey = user.email?.toLowerCase();
+
+    if (isBootstrapAdmin(user.email)) {
+      const newProfile: UserProfile = {
+        userId: user.uid,
+        nama: user.displayName || 'Pembina Pramuka',
+        email: user.email!,
+        kelas: 'Pembina',
+        regu: 'Laksana',
+        status: UserStatus.AKTIF,
+        role: UserRole.ADMIN,
+        createdAt: serverTimestamp(),
+      };
+      await setDoc(userRef, newProfile);
+      return;
+    }
+
+    const migrated = await safeMigrate(user, userRef);
+    if (migrated) {
+      setAuthGate(null);
+      clearPreRegisteredListener();
+      return;
+    }
+
+    if (emailKey) {
+      const gate = await resolveRegistrationGate(emailKey);
+      setAuthGate(gate);
+      setUserProfile(null);
+
+      if (gate === 'purna_pending' || gate === 'approved_awaiting_login') {
+        watchPreRegisteredForMigration(user, userRef);
+      } else {
+        clearPreRegisteredListener();
+      }
+      return;
+    }
+
+    setAuthGate('unregistered');
+    setUserProfile(null);
+    clearPreRegisteredListener();
+  };
 
   useEffect(() => {
     getRedirectResult(auth)
       .catch((err) => {
+        if (isMissingRedirectStateError(err)) return;
         console.error('Google redirect sign-in failed:', err);
         setAuthError(getGoogleSignInErrorMessage(err));
       });
@@ -128,7 +227,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       profileUnsubRef.current?.();
       profileUnsubRef.current = null;
+      clearPreRegisteredListener();
 
+      currentUserRef.current = user;
       setCurrentUser(user);
 
       if (!user) {
@@ -147,57 +248,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (docSnap.exists()) {
             setUserProfile(normalizeUserProfile(user.uid, docSnap.data() as Record<string, unknown>));
             setAuthGate(null);
+            clearPreRegisteredListener();
             setLoading(false);
             return;
           }
 
           try {
-            if (isBootstrapAdmin(user.email)) {
-              const newProfile: UserProfile = {
-                userId: user.uid,
-                nama: user.displayName || 'Pembina Pramuka',
-                email: user.email!,
-                kelas: 'Pembina',
-                regu: 'Laksana',
-                status: UserStatus.AKTIF,
-                role: UserRole.ADMIN,
-                createdAt: serverTimestamp(),
-              };
-              await setDoc(userRef, newProfile);
-              return;
-            }
-
-            const migrated = await migratePreRegisteredProfile(user, userRef);
-            if (migrated) {
-              setAuthGate(null);
-              return;
-            }
-
-            const emailKey = user.email?.toLowerCase();
-            if (emailKey) {
-              const regSnap = await getDoc(doc(db, 'purna_registrations', emailKey));
-              if (regSnap.exists()) {
-                const reg = normalizePurnaRegistration(emailKey, regSnap.data() as Record<string, unknown>);
-                if (reg.approvalStatus === PurnaApprovalStatus.PENDING) {
-                  setAuthGate('purna_pending');
-                  setUserProfile(null);
-                  return;
-                }
-                if (reg.approvalStatus === PurnaApprovalStatus.REJECTED) {
-                  setAuthGate('purna_rejected');
-                  setUserProfile(null);
-                  return;
-                }
-                if (reg.approvalStatus === PurnaApprovalStatus.APPROVED) {
-                  setAuthGate('approved_awaiting_login');
-                  setUserProfile(null);
-                  return;
-                }
-              }
-            }
-
-            setAuthGate('unregistered');
-            setUserProfile(null);
+            await resolveSignedInUser(user);
           } catch (err) {
             console.error('Failed to resolve user profile:', err);
             if (err instanceof FirebaseError && err.code === 'permission-denied') {
@@ -207,6 +264,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
             setAuthGate(null);
             setUserProfile(null);
+            clearPreRegisteredListener();
           } finally {
             setLoading(false);
           }
@@ -222,6 +280,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       profileUnsubRef.current?.();
+      clearPreRegisteredListener();
       unsubscribeAuth();
     };
   }, []);
@@ -253,6 +312,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error('Error during log out:', error);
       throw error;
+    }
+  };
+
+  const retryProfileSetup = async () => {
+    const user = currentUserRef.current;
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const existing = await getDoc(userRef);
+      if (existing.exists()) {
+        setAuthGate(null);
+        return;
+      }
+      await resolveSignedInUser(user);
+    } catch (err) {
+      console.error('Retry profile setup failed:', err);
+      setAuthError(err instanceof Error ? err.message : 'Gagal mengaktifkan akun.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -360,6 +440,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         clearAuthError: () => setAuthError(null),
         signInWithGoogle,
         logout,
+        retryProfileSetup,
         registerProfile,
         updateProfileDetails,
         updatePurnaProfile,

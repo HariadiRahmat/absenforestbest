@@ -1,6 +1,15 @@
 import { FirebaseError } from 'firebase/app';
 
+export function isMissingRedirectStateError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.message.includes('missing initial state');
+}
+
 export function getGoogleSignInErrorMessage(error: unknown): string {
+  if (isMissingRedirectStateError(error)) {
+    return 'Sesi login Google terputus. Tutup tab Google jika masih terbuka, lalu tekan Masuk dengan Google sekali lagi.';
+  }
+
   const code = error instanceof FirebaseError ? error.code : '';
 
   switch (code) {
@@ -26,11 +35,8 @@ export function getGoogleSignInErrorMessage(error: unknown): string {
 }
 
 export function shouldUseRedirectSignIn(): boolean {
-  if (typeof window === 'undefined') return false;
-  const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-  const narrow = window.innerWidth < 768;
-  const standalone = window.matchMedia('(display-mode: standalone)').matches;
-  return mobile || narrow || standalone;
+  // Popup lebih andal di Safari/mobile — redirect sering gagal karena sessionStorage terpartisi.
+  return false;
 }
 
 export function shouldFallbackToRedirect(error: unknown): boolean {
