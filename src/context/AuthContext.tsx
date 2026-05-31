@@ -259,7 +259,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('Failed to resolve user profile:', err);
             if (err instanceof FirebaseError && err.code === 'permission-denied') {
               setAuthError(
-                'Firestore Rules belum di-deploy ke Firebase. Buka Firebase Console → Firestore → Rules, salin isi firestore.rules dari repo, lalu klik Publish.'
+                'Akses Firestore ditolak. Publish file firestore.rules terbaru di Firebase Console → Firestore → Rules → Publish. Jika memakai database non-default, publish rules ke database yang sama dengan VITE_FIREBASE_FIRESTORE_DATABASE_ID.'
               );
             }
             setAuthGate(null);

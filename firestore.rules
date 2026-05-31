@@ -18,13 +18,17 @@ service cloud.firestore {
       return resource.data;
     }
 
+    function authEmail() {
+      return request.auth.token.email.lower();
+    }
+
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
     function isBootstrapEmail() {
-      return request.auth.token.email == 'hariadirahmat2003@gmail.com'
-        || request.auth.token.email == 'admin@gmail.com';
+      return authEmail() == 'hariadirahmat2003@gmail.com'
+        || authEmail() == 'admin@gmail.com';
     }
 
     function isAdmin() {
@@ -39,6 +43,22 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    function preRegisteredExistsForAuth() {
+      return exists(/databases/$(database)/documents/pre_registered/$(authEmail()));
+    }
+
+    function validOptionalPurnaProfileFields() {
+      return (!('tanggalLahir' in incoming()) || (incoming().tanggalLahir is string && incoming().tanggalLahir.size() <= 10))
+        && (!('alamat' in incoming()) || (incoming().alamat is string && incoming().alamat.size() <= 500))
+        && (!('agama' in incoming()) || (incoming().agama is string && incoming().agama.size() <= 50))
+        && (!('pendidikanSd' in incoming()) || (incoming().pendidikanSd is string && incoming().pendidikanSd.size() <= 120))
+        && (!('pendidikanSmp' in incoming()) || (incoming().pendidikanSmp is string && incoming().pendidikanSmp.size() <= 120))
+        && (!('pendidikanSma' in incoming()) || (incoming().pendidikanSma is string && incoming().pendidikanSma.size() <= 120))
+        && (!('pendidikanKuliah' in incoming()) || (incoming().pendidikanKuliah is string && incoming().pendidikanKuliah.size() <= 120))
+        && (!('statusPerkawinan' in incoming()) || (incoming().statusPerkawinan is string && incoming().statusPerkawinan.size() <= 30))
+        && (!('profileComplete' in incoming()) || incoming().profileComplete is bool);
+    }
+
     // ── Users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
@@ -51,8 +71,8 @@ service cloud.firestore {
           && incoming().userId == request.auth.uid
           && incoming().role == 'admin'
           && incoming().status == 'aktif'
-          && incoming().email == request.auth.token.email
-          && incoming().nama is string && incoming().nama.size() <= 100
+          && incoming().email.lower() == authEmail()
+          && incoming().nama is string && incoming().nama.size() > 0 && incoming().nama.size() <= 100
           && incoming().kelas is string && incoming().kelas.size() <= 20
           && incoming().regu is string && incoming().regu.size() <= 30
           && incoming().createdAt == request.time)
@@ -60,14 +80,15 @@ service cloud.firestore {
         // Pre-register migration on first login
         (isOwner(userId)
           && incoming().userId == request.auth.uid
-          && incoming().email == request.auth.token.email
+          && incoming().email.lower() == authEmail()
           && incoming().role in ['anggota', 'admin', 'purna']
           && incoming().status in ['aktif', 'nonaktif']
-          && incoming().nama is string && incoming().nama.size() <= 100
+          && incoming().nama is string && incoming().nama.size() > 0 && incoming().nama.size() <= 100
           && incoming().kelas is string && incoming().kelas.size() <= 20
           && incoming().regu is string && incoming().regu.size() <= 30
           && incoming().createdAt == request.time
-          && exists(/databases/$(database)/documents/pre_registered/$(request.auth.token.email.lower())))
+          && validOptionalPurnaProfileFields()
+          && preRegisteredExistsForAuth())
         ||
         isAdmin()
       );
@@ -183,10 +204,10 @@ service cloud.firestore {
 
     // ── Pre-registration ───────────────────────────────────────────────────
     match /pre_registered/{email} {
-      allow get: if isSignedIn() && request.auth.token.email.lower() == email.lower();
+      allow get: if isSignedIn() && authEmail() == email.lower();
       allow list: if isAdmin();
       allow create, update: if isAdmin();
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.token.email.lower() == email.lower());
+      allow delete: if isAdmin() || (isSignedIn() && authEmail() == email.lower());
     }
 
     function validMemberRegistrationFields(regEmail) {
@@ -223,7 +244,7 @@ service cloud.firestore {
     match /purna_registrations/{email} {
       // Izinkan cek email baru (doc belum ada) + status pending/rejected/approved
       allow get: if isAdmin()
-        || (isSignedIn() && request.auth.token.email.lower() == email.lower())
+        || (isSignedIn() && authEmail() == email.lower())
         || !exists(registrationDocPath(email))
         || (resource.data.approvalStatus in ['pending', 'rejected', 'approved']);
       allow list: if isAdmin();
