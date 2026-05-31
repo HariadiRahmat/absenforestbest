@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { FirebaseError } from 'firebase/app';
 import {
   Award,
   ArrowLeft,
@@ -71,8 +72,7 @@ export function PurnaRegistrationLanding({ onBack }: PurnaRegistrationLandingPro
 
     try {
       const regRef = doc(db, 'purna_registrations', emailKey);
-
-      await setDoc(regRef, {
+      const payload = {
         email: emailKey,
         nama: nama.trim(),
         tanggalLahir,
@@ -85,12 +85,22 @@ export function PurnaRegistrationLanding({ onBack }: PurnaRegistrationLandingPro
         statusPerkawinan,
         approvalStatus: PurnaApprovalStatus.PENDING,
         submittedAt: serverTimestamp(),
-      });
+      };
+
+      await setDoc(regRef, payload);
 
       setSubmitted(true);
     } catch (err) {
       console.error(err);
-      setErrorMsg('Email mungkin sudah terdaftar, atau Firestore Rules belum di-publish.');
+      if (err instanceof FirebaseError) {
+        if (err.code === 'permission-denied') {
+          setErrorMsg(
+            'Akses ditolak. Publish firestore.rules terbaru di Firebase Console, atau email sudah terdaftar menunggu konfirmasi.'
+          );
+          return;
+        }
+      }
+      setErrorMsg('Gagal mengirim pendaftaran. Periksa koneksi dan coba lagi.');
     } finally {
       setSubmitting(false);
     }
