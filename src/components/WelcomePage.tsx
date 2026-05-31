@@ -53,7 +53,7 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
             ForestBest Scout
           </h1>
           <p className="text-[13px] sm:text-base text-bento-muted mt-2 leading-relaxed max-w-[280px] sm:max-w-sm mx-auto px-1">
-            Platform untuk anggota aktif, pembina, dan alumni Purna.
+            Platform untuk anggota aktif, pembina, dan purna.
           </p>
         </div>
       </header>
