@@ -4,15 +4,26 @@
  */
 
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { User as FirebaseUser, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'firebase/auth';
+import {
+  User as FirebaseUser,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  GoogleAuthProvider,
+  signOut,
+  onAuthStateChanged,
+} from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
+import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage } from '../lib/authErrors';
 import { UserProfile, UserRole, UserStatus, OperationType } from '../types';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  authError: string | null;
+  clearAuthError: () => void;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   registerProfile: (nama: string, kelas: string, regu: string) => Promise<void>;
@@ -57,9 +68,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authError, setAuthError] = useState<string | null>(null);
   const profileUnsubRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
+    getRedirectResult(auth)
+      .catch((err) => {
+        console.error('Google redirect sign-in failed:', err);
+        setAuthError(getGoogleSignInErrorMessage(err));
+      });
+
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       profileUnsubRef.current?.();
       profileUnsubRef.current = null;
@@ -129,10 +147,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: 'select_account' });
+
+    if (shouldUseRedirectSignIn()) {
+      await signInWithRedirect(auth, provider);
+      return;
+    }
+
     try {
       await signInWithPopup(auth, provider);
     } catch (error) {
       console.error('Error during Google Sign In:', error);
+      if (shouldFallbackToRedirect(error)) {
+        await signInWithRedirect(auth, provider);
+        return;
+      }
       throw error;
     }
   };
@@ -200,6 +228,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         currentUser,
         userProfile,
         loading,
+        authError,
+        clearAuthError: () => setAuthError(null),
         signInWithGoogle,
         logout,
         registerProfile,

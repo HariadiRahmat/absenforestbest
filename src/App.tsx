@@ -10,17 +10,19 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AnggotaDashboard } from './components/AnggotaDashboard';
 import { UserRole, UserStatus } from './types';
 import { Compass, Sparkles, LogOut, AlertTriangle, ShieldCheck, HelpCircle, Heart } from 'lucide-react';
+import { getGoogleSignInErrorMessage } from './lib/authErrors';
 
 function ScoutAppContent() {
-  const { currentUser, userProfile, loading, signInWithGoogle, logout } = useAuth();
+  const { currentUser, userProfile, loading, authError, clearAuthError, signInWithGoogle, logout } = useAuth();
   const [loginError, setLoginError] = React.useState<string | null>(null);
 
   const handleGoogleLogin = async () => {
     setLoginError(null);
+    clearAuthError();
     try {
       await signInWithGoogle();
-    } catch {
-      setLoginError('Gagal masuk via Google. Pastikan pop-up tidak diblokir dan coba lagi.');
+    } catch (err) {
+      setLoginError(getGoogleSignInErrorMessage(err));
     }
   };
 
@@ -98,9 +100,9 @@ function ScoutAppContent() {
 
             {/* Google Sign-In Primary Action */}
             <div className="pt-2 space-y-3">
-              {loginError && (
+              {(loginError || authError) && (
                 <div className="p-3 bg-red-50 text-red-900 border border-red-200 rounded-xl text-xs font-semibold">
-                  {loginError}
+                  {loginError || authError}
                 </div>
               )}
               <button
