@@ -190,7 +190,7 @@ service cloud.firestore {
     }
 
     function validPurnaRegistrationFields(regEmail) {
-      return incoming().email == regEmail
+      return incoming().email.lower() == regEmail.lower()
         && incoming().nama is string && incoming().nama.size() > 0 && incoming().nama.size() <= 100
         && incoming().approvalStatus == 'pending'
         && incoming().tanggalLahir is string && incoming().tanggalLahir.size() == 10
@@ -199,24 +199,28 @@ service cloud.firestore {
         && incoming().pendidikanSd is string && incoming().pendidikanSd.size() > 0 && incoming().pendidikanSd.size() <= 120
         && incoming().pendidikanSmp is string && incoming().pendidikanSmp.size() > 0 && incoming().pendidikanSmp.size() <= 120
         && incoming().pendidikanSma is string && incoming().pendidikanSma.size() > 0 && incoming().pendidikanSma.size() <= 120
-        && incoming().pendidikanKuliah is string && incoming().pendidikanKuliah.size() <= 120
+        && (!('pendidikanKuliah' in incoming()) || (incoming().pendidikanKuliah is string && incoming().pendidikanKuliah.size() <= 120))
         && incoming().statusPerkawinan is string && incoming().statusPerkawinan.size() > 0 && incoming().statusPerkawinan.size() <= 30
         && incoming().submittedAt == request.time;
+    }
+
+    function purnaNotPreRegistered(email) {
+      return !exists(/databases/$(database)/documents/pre_registered/$(email.lower()));
     }
 
     // ── Purna self-registration (landing page, tanpa login) ────────────────
     match /purna_registrations/{email} {
       allow get: if isAdmin()
-        || (isSignedIn() && request.auth.token.email == email)
-        || !exists(/databases/$(database)/documents/purna_registrations/$(email));
+        || (isSignedIn() && request.auth.token.email.lower() == email.lower())
+        || (resource.data.approvalStatus in ['pending', 'rejected']);
       allow list: if isAdmin();
-      allow create: if !exists(/databases/$(database)/documents/purna_registrations/$(email))
-        && !exists(/databases/$(database)/documents/pre_registered/$(email))
+      allow create: if purnaNotPreRegistered(email)
+        && !exists(/databases/$(database)/documents/purna_registrations/$(email))
         && validPurnaRegistrationFields(email);
       allow update: if isAdmin()
         || (resource.data.approvalStatus == 'rejected'
           && incoming().approvalStatus == 'pending'
-          && !exists(/databases/$(database)/documents/pre_registered/$(email))
+          && purnaNotPreRegistered(email)
           && validPurnaRegistrationFields(email));
       allow delete: if isAdmin();
     }

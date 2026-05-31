@@ -5,6 +5,7 @@ import { MemberDirectory } from '../MemberDirectory';
 import { PurnaApplicationsPanel } from '../PurnaApplicationsPanel';
 import { PurnaLinksSettings } from '../PurnaLinksSettings';
 import { MemberCrudModal } from './MemberCrudModal';
+import { PurnaProfileViewModal } from './PurnaProfileViewModal';
 import { filterUsersByRole } from '../../lib/filterUsers';
 import { buildPurnaDirectoryList, isPreRegisteredUserId } from '../../lib/purnaDirectory';
 import { UserProfile, UserRole, UserStatus, PurnaRegistration, PreRegisteredMember } from '../../types';
@@ -50,6 +51,7 @@ export function AdminKelolaPage({
   const [memberSearchPurna, setMemberSearchPurna] = useState('');
   const [memberFilterRegu, setMemberFilterRegu] = useState('ALL');
   const [memberFilterKelas, setMemberFilterKelas] = useState('ALL');
+  const [viewPurnaMember, setViewPurnaMember] = useState<UserProfile | null>(null);
 
   const anggotaUsers = users.filter((u) => u.role === UserRole.ANGGOTA);
   const uniqueRegus = Array.from(new Set(anggotaUsers.map((u) => (u.regu ?? '').toUpperCase()))).filter(Boolean);
@@ -308,9 +310,14 @@ export function AdminKelolaPage({
             onEdit={handleOpenEditModal}
             onDelete={handleDeleteMember}
             onToggleStatus={handleToggleStatus}
+            onView={setViewPurnaMember}
             compact
           />
         </div>
+      )}
+
+      {viewPurnaMember && (
+        <PurnaProfileViewModal member={viewPurnaMember} onClose={() => setViewPurnaMember(null)} />
       )}
 
       {tab === 'purna_docs' && <PurnaLinksSettings />}

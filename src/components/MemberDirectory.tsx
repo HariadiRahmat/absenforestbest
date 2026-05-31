@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Edit2, Plus, Search, Trash2, Users, CheckCircle2, Clock } from 'lucide-react';
+import { Edit2, Plus, Search, Trash2, Users, CheckCircle2, Clock, Eye } from 'lucide-react';
 import { UserProfile, UserRole, UserStatus } from '../types';
 import { isPurnaProfileComplete } from '../lib/purnaProfile';
 import { isPreRegisteredUserId } from '../lib/purnaDirectory';
@@ -26,6 +26,7 @@ export interface MemberDirectoryProps {
   onDelete: (userId: string) => void;
   onToggleStatus: (member: UserProfile) => void;
   compact?: boolean;
+  onView?: (member: UserProfile) => void;
 }
 
 const copy = {
@@ -79,6 +80,7 @@ export function MemberDirectory({
   onDelete,
   onToggleStatus,
   compact = false,
+  onView,
 }: MemberDirectoryProps) {
   const labels = copy[role];
   const cardClass = compact ? 'scout-card p-3 sm:p-4' : 'scout-card p-4 sm:p-6';
@@ -164,6 +166,7 @@ export function MemberDirectory({
             <CompactPurnaRow
               key={member.userId}
               member={member}
+              onView={onView}
               onEdit={onEdit}
               onDelete={onDelete}
               onToggleStatus={onToggleStatus}
@@ -222,6 +225,16 @@ export function MemberDirectory({
                       <StatusBadge member={member} onToggle={() => onToggleStatus(member)} />
                     </td>
                     <td className="p-4 text-right space-x-2">
+                      {onView && role === UserRole.PURNA && (
+                        <button
+                          type="button"
+                          onClick={() => onView(member)}
+                          className="p-1.5 hover:bg-bento-soft text-bento-muted transition rounded-lg bg-white border border-bento-border cursor-pointer"
+                          title="Lihat biodata"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                       <button
                         type="button"
                         onClick={() => onEdit(member)}
@@ -350,11 +363,13 @@ function PurnaProfileBadge({ member }: { member: UserProfile }) {
 
 function CompactPurnaRow({
   member,
+  onView,
   onEdit,
   onDelete,
   onToggleStatus,
 }: {
   member: UserProfile;
+  onView?: (m: UserProfile) => void;
   onEdit: (m: UserProfile) => void;
   onDelete: (userId: string) => void;
   onToggleStatus: (m: UserProfile) => void;
@@ -373,6 +388,16 @@ function CompactPurnaRow({
       </div>
       <StatusBadge member={member} onToggle={() => onToggleStatus(member)} />
       <div className="flex items-center gap-1 shrink-0">
+        {onView && (
+          <button
+            type="button"
+            onClick={() => onView(member)}
+            className="p-1.5 hover:bg-bento-soft text-bento-muted transition rounded-lg cursor-pointer"
+            title="Lihat biodata"
+          >
+            <Eye className="w-3.5 h-3.5" />
+          </button>
+        )}
         <button
           type="button"
           onClick={() => onEdit(member)}

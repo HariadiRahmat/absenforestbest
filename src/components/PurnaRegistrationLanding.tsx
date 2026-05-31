@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import {
   Award,
@@ -72,6 +72,20 @@ export function PurnaRegistrationLanding({ onBack }: PurnaRegistrationLandingPro
 
     try {
       const regRef = doc(db, 'purna_registrations', emailKey);
+      const existingSnap = await getDoc(regRef);
+
+      if (existingSnap.exists()) {
+        const existingStatus = String(existingSnap.data()?.approvalStatus ?? 'pending').toLowerCase();
+        if (existingStatus === 'pending') {
+          setErrorMsg('Email ini sudah terdaftar dan menunggu konfirmasi Pembina.');
+          return;
+        }
+        if (existingStatus === 'approved') {
+          setErrorMsg('Email sudah disetujui. Silakan login dengan Google menggunakan email tersebut.');
+          return;
+        }
+      }
+
       const payload = {
         email: emailKey,
         nama: nama.trim(),
@@ -95,7 +109,7 @@ export function PurnaRegistrationLanding({ onBack }: PurnaRegistrationLandingPro
       if (err instanceof FirebaseError) {
         if (err.code === 'permission-denied') {
           setErrorMsg(
-            'Akses ditolak. Publish firestore.rules terbaru di Firebase Console, atau email sudah terdaftar menunggu konfirmasi.'
+            'Akses ditolak. Pastikan firestore.rules sudah di-Publish di Firebase Console, atau email sudah terdaftar / menunggu konfirmasi.'
           );
           return;
         }
