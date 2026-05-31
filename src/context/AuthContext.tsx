@@ -18,12 +18,14 @@ import { FirebaseError } from 'firebase/app';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { normalizeUserProfile } from '../lib/normalizeUserProfile';
 import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage } from '../lib/authErrors';
-import { UserProfile, UserRole, UserStatus, OperationType } from '../types';
+import { UserProfile, UserRole, UserStatus, OperationType, PurnaApprovalStatus } from '../types';
 import { isPurnaProfileComplete, PurnaProfileFormData } from '../lib/purnaProfile';
+import { normalizePurnaRegistration, PurnaGateStatus } from '../lib/purnaRegistration';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
   userProfile: UserProfile | null;
+  purnaGate: PurnaGateStatus;
   loading: boolean;
   authError: string | null;
   clearAuthError: () => void;
@@ -71,7 +73,34 @@ async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnTy
     status: pre.status ?? UserStatus.AKTIF,
     role,
     createdAt: serverTimestamp(),
-    profileComplete: role === UserRole.PURNA ? false : undefined,
+    tanggalLahir: pre.tanggalLahir,
+    alamat: pre.alamat,
+    agama: pre.agama,
+    pendidikanSd: pre.pendidikanSd,
+    pendidikanSmp: pre.pendidikanSmp,
+    pendidikanSma: pre.pendidikanSma,
+    pendidikanKuliah: pre.pendidikanKuliah,
+    statusPerkawinan: pre.statusPerkawinan,
+    profileComplete: role === UserRole.PURNA
+      ? (pre.profileComplete === true || isPurnaProfileComplete({
+          userId: user.uid,
+          nama: pre.nama,
+          email: emailKey,
+          kelas: pre.kelas,
+          regu: pre.regu,
+          status: pre.status ?? UserStatus.AKTIF,
+          role,
+          createdAt: null,
+          tanggalLahir: pre.tanggalLahir,
+          alamat: pre.alamat,
+          agama: pre.agama,
+          pendidikanSd: pre.pendidikanSd,
+          pendidikanSmp: pre.pendidikanSmp,
+          pendidikanSma: pre.pendidikanSma,
+          pendidikanKuliah: pre.pendidikanKuliah,
+          statusPerkawinan: pre.statusPerkawinan,
+        }))
+      : undefined,
   };
 
   await setDoc(userRef, newProfile);
@@ -82,6 +111,7 @@ async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnTy
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [purnaGate, setPurnaGate] = useState<PurnaGateStatus>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const profileUnsubRef = useRef<(() => void) | null>(null);
@@ -101,6 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!user) {
         setUserProfile(null);
+        setPurnaGate(null);
         setLoading(false);
         return;
       }
@@ -113,6 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         async (docSnap) => {
           if (docSnap.exists()) {
             setUserProfile(normalizeUserProfile(user.uid, docSnap.data() as Record<string, unknown>));
+            setPurnaGate(null);
             setLoading(false);
             return;
           }
@@ -134,9 +166,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
 
             const migrated = await migratePreRegisteredProfile(user, userRef);
-            if (!migrated) {
-              setUserProfile(null);
+            if (migrated) {
+              setPurnaGate(null);
+              return;
             }
+
+            const emailKey = user.email?.toLowerCase();
+            if (emailKey) {
+              const regSnap = await getDoc(doc(db, 'purna_registrations', emailKey));
+              if (regSnap.exists()) {
+                const reg = normalizePurnaRegistration(emailKey, regSnap.data() as Record<string, unknown>);
+                if (reg.approvalStatus === PurnaApprovalStatus.PENDING) {
+                  setPurnaGate('pending');
+                  setUserProfile(null);
+                  return;
+                }
+                if (reg.approvalStatus === PurnaApprovalStatus.REJECTED) {
+                  setPurnaGate('rejected');
+                  setUserProfile(null);
+                  return;
+                }
+              }
+            }
+
+            setPurnaGate(null);
+            setUserProfile(null);
           } catch (err) {
             console.error('Failed to resolve user profile:', err);
             if (err instanceof FirebaseError && err.code === 'permission-denied') {
@@ -144,6 +198,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 'Firestore Rules belum di-deploy ke Firebase. Buka Firebase Console → Firestore → Rules, salin isi firestore.rules dari repo, lalu klik Publish.'
               );
             }
+            setPurnaGate(null);
             setUserProfile(null);
           } finally {
             setLoading(false);
@@ -199,6 +254,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const userRef = doc(db, 'users', currentUser.uid);
     const emailKey = currentUser.email?.toLowerCase() ?? '';
+    const regSnap = emailKey ? await getDoc(doc(db, 'purna_registrations', emailKey)) : null;
+    if (regSnap?.exists()) {
+      const reg = normalizePurnaRegistration(emailKey, regSnap.data() as Record<string, unknown>);
+      if (reg.approvalStatus === PurnaApprovalStatus.PENDING) {
+        throw new Error('Pendaftaran Purna Anda masih menunggu konfirmasi admin.');
+      }
+    }
+
     const preSnap = emailKey ? await getDoc(doc(db, 'pre_registered', emailKey)) : null;
     const pre = preSnap?.exists() ? preSnap.data() : null;
 
@@ -275,6 +338,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         userProfile,
+        purnaGate,
         loading,
         authError,
         clearAuthError: () => setAuthError(null),

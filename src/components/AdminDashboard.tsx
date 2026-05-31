@@ -23,6 +23,7 @@ import { UserProfile, AttendanceRecord, QRCodeConfig, UserRole, UserStatus, Atte
 import { QRGenerator } from './QRGenerator';
 import { GeofenceSettings } from './GeofenceSettings';
 import { PurnaLinksSettings } from './PurnaLinksSettings';
+import { PurnaApplicationsPanel } from './PurnaApplicationsPanel';
 import { MemberDirectory } from './MemberDirectory';
 import { Alert } from './ui/Alert';
 import { TabNav } from './ui/TabNav';
@@ -129,7 +130,6 @@ export function AdminDashboard() {
   // Search/Filters states
   const [memberSearchAnggota, setMemberSearchAnggota] = useState('');
   const [memberSearchPembina, setMemberSearchPembina] = useState('');
-  const [memberSearchPurna, setMemberSearchPurna] = useState('');
   const [memberFilterRegu, setMemberFilterRegu] = useState('ALL');
   const [memberFilterKelas, setMemberFilterKelas] = useState('ALL');
   const [formContextRole, setFormContextRole] = useState<UserRole>(UserRole.ANGGOTA);
@@ -374,15 +374,6 @@ export function AdminDashboard() {
     users,
     UserRole.ADMIN,
     memberSearchPembina,
-    'ALL',
-    'ALL',
-    false
-  );
-
-  const filteredPurna = filterUsersByRole(
-    users,
-    UserRole.PURNA,
-    memberSearchPurna,
     'ALL',
     'ALL',
     false
@@ -648,25 +639,7 @@ export function AdminDashboard() {
             />
           )}
 
-          {adminTab === 'crud_purna' && (
-            <MemberDirectory
-              role={UserRole.PURNA}
-              members={filteredPurna}
-              loading={loadingMembers}
-              search={memberSearchPurna}
-              onSearchChange={setMemberSearchPurna}
-              filterRegu="ALL"
-              onFilterReguChange={() => {}}
-              filterKelas="ALL"
-              onFilterKelasChange={() => {}}
-              uniqueRegus={[]}
-              uniqueClasses={[]}
-              onAdd={() => handleOpenCreateModal(UserRole.PURNA)}
-              onEdit={handleOpenEditModal}
-              onDelete={handleDeleteMember}
-              onToggleStatus={handleToggleStatus}
-            />
-          )}
+          {adminTab === 'crud_purna' && <PurnaApplicationsPanel />}
 
           {adminTab === 'purna_docs' && <PurnaLinksSettings />}
 

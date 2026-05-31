@@ -14,6 +14,12 @@ export enum UserStatus {
   NON_AKTIF = 'nonaktif',
 }
 
+export enum PurnaApprovalStatus {
+  PENDING = 'pending',
+  APPROVED = 'approved',
+  REJECTED = 'rejected',
+}
+
 export enum AttendanceStatus {
   HADIR = 'hadir',
   TIDAK_HADIR = 'tidak hadir',
@@ -57,6 +63,23 @@ export interface PurnaLinksConfig {
 export const DEFAULT_PURNA_LINKS: PurnaLinksConfig = {
   links: [],
 };
+
+/** Pendaftaran Purna via landing page — menunggu konfirmasi admin */
+export interface PurnaRegistration {
+  email: string;
+  nama: string;
+  tanggalLahir: string;
+  alamat: string;
+  agama: string;
+  pendidikanSd: string;
+  pendidikanSmp: string;
+  pendidikanSma: string;
+  pendidikanKuliah?: string;
+  statusPerkawinan: string;
+  approvalStatus: PurnaApprovalStatus;
+  submittedAt?: any;
+  reviewedAt?: any;
+}
 
 export interface AttendanceRecord {
   id?: string;

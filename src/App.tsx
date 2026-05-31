@@ -6,19 +6,22 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProfileForm } from './components/ProfileForm';
-import { PurnaProfileForm } from './components/PurnaProfileForm';
+import { PurnaRegistrationLanding } from './components/PurnaRegistrationLanding';
+import { PurnaPendingGate } from './components/PurnaPendingGate';
 import { PurnaDashboard } from './components/PurnaDashboard';
+import { PurnaProfileForm } from './components/PurnaProfileForm';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AnggotaDashboard } from './components/AnggotaDashboard';
 import { UserRole, UserStatus } from './types';
 import { isPurnaProfileComplete } from './lib/purnaProfile';
-import { Compass, LogOut, ShieldCheck, QrCode, MapPin } from 'lucide-react';
+import { Compass, LogOut, ShieldCheck, QrCode, MapPin, Award } from 'lucide-react';
 import { getGoogleSignInErrorMessage } from './lib/authErrors';
 import { Alert } from './components/ui/Alert';
 
 function ScoutAppContent() {
-  const { currentUser, userProfile, loading, authError, clearAuthError, signInWithGoogle, logout } = useAuth();
+  const { currentUser, userProfile, purnaGate, loading, authError, clearAuthError, signInWithGoogle, logout } = useAuth();
   const [loginError, setLoginError] = React.useState<string | null>(null);
+  const [publicView, setPublicView] = React.useState<'login' | 'purna-register'>('login');
 
   const handleGoogleLogin = async () => {
     setLoginError(null);
@@ -43,6 +46,10 @@ function ScoutAppContent() {
   }
 
   if (!currentUser) {
+    if (publicView === 'purna-register') {
+      return <PurnaRegistrationLanding onBack={() => setPublicView('login')} />;
+    }
+
     return (
       <div id="scout-gate-login" className="min-h-screen bg-bento-bg flex flex-col justify-center py-8 sm:py-10 px-4">
         <div className="max-w-md w-full mx-auto scout-card overflow-hidden">
@@ -97,6 +104,16 @@ function ScoutAppContent() {
               </svg>
               Masuk dengan Google
             </button>
+
+            <button
+              id="btn-purna-register"
+              type="button"
+              onClick={() => setPublicView('purna-register')}
+              className="w-full scout-btn-secondary py-3.5 text-sm"
+            >
+              <Award className="w-4 h-4" />
+              Daftar sebagai Purna
+            </button>
           </div>
 
           <div className="px-5 sm:px-8 py-4 bg-bento-soft border-t border-bento-border text-center">
@@ -105,6 +122,10 @@ function ScoutAppContent() {
         </div>
       </div>
     );
+  }
+
+  if (currentUser && purnaGate) {
+    return <PurnaPendingGate status={purnaGate} />;
   }
 
   if (currentUser && !userProfile) {
