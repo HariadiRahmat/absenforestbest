@@ -53,7 +53,7 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
         <div className="relative max-w-lg mx-auto">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 border border-bento-border text-[10px] sm:text-[11px] font-semibold text-bento-muted mb-4 backdrop-blur-sm">
             <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-bento-primary shrink-0" />
-            Platform Komunitas Pramuka
+            ForestBest Data Center
           </div>
 
           <div className="w-14 h-14 sm:w-16 sm:h-16 bg-bento-accent rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-sm border border-white/60">
