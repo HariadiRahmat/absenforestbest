@@ -67,7 +67,7 @@ service cloud.firestore {
           && incoming().kelas is string && incoming().kelas.size() <= 20
           && incoming().regu is string && incoming().regu.size() <= 30
           && incoming().createdAt == request.time
-          && exists(/databases/$(database)/documents/pre_registered/$(request.auth.token.email)))
+          && exists(/databases/$(database)/documents/pre_registered/$(request.auth.token.email.lower())))
         ||
         isAdmin()
       );
@@ -183,10 +183,10 @@ service cloud.firestore {
 
     // ── Pre-registration ───────────────────────────────────────────────────
     match /pre_registered/{email} {
-      allow get: if isSignedIn() && request.auth.token.email == email;
+      allow get: if isSignedIn() && request.auth.token.email.lower() == email.lower();
       allow list: if isAdmin();
       allow create, update: if isAdmin();
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
+      allow delete: if isAdmin() || (isSignedIn() && request.auth.token.email.lower() == email.lower());
     }
 
     function validMemberRegistrationFields(regEmail) {
@@ -194,6 +194,11 @@ service cloud.firestore {
         && incoming().nama is string && incoming().nama.size() > 0 && incoming().nama.size() <= 100
         && incoming().approvalStatus == 'pending'
         && incoming().submittedAt == request.time
+        && incoming().keys().hasOnly([
+          'email', 'nama', 'approvalStatus', 'submittedAt',
+          'kelas', 'regu', 'tanggalLahir', 'alamat', 'agama',
+          'pendidikanSd', 'pendidikanSmp', 'pendidikanSma', 'pendidikanKuliah', 'statusPerkawinan'
+        ])
         && (!('kelas' in incoming()) || (incoming().kelas is string && incoming().kelas.size() <= 20))
         && (!('regu' in incoming()) || (incoming().regu is string && incoming().regu.size() <= 30))
         && (!('tanggalLahir' in incoming()) || (incoming().tanggalLahir is string && incoming().tanggalLahir.size() <= 10))
@@ -210,14 +215,20 @@ service cloud.firestore {
       return !exists(/databases/$(database)/documents/pre_registered/$(email.lower()));
     }
 
+    function registrationDocPath(email) {
+      return /databases/$(database)/documents/purna_registrations/$(email.lower());
+    }
+
     // ── Pendaftaran akun baru (halaman Register, tanpa login) ──────────────
     match /purna_registrations/{email} {
+      // Izinkan cek email baru (doc belum ada) + status pending/rejected/approved
       allow get: if isAdmin()
         || (isSignedIn() && request.auth.token.email.lower() == email.lower())
-        || (resource.data.approvalStatus in ['pending', 'rejected']);
+        || !exists(registrationDocPath(email))
+        || (resource.data.approvalStatus in ['pending', 'rejected', 'approved']);
       allow list: if isAdmin();
       allow create: if memberNotPreRegistered(email)
-        && !exists(/databases/$(database)/documents/purna_registrations/$(email))
+        && !exists(registrationDocPath(email))
         && validMemberRegistrationFields(email);
       allow update: if isAdmin()
         || (resource.data.approvalStatus == 'rejected'

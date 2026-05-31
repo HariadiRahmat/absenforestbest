@@ -71,18 +71,23 @@ export function RegistrationLanding({ onBack }: RegistrationLandingProps) {
 
     try {
       const regRef = doc(db, 'purna_registrations', emailKey);
-      const existingSnap = await getDoc(regRef);
 
-      if (existingSnap.exists()) {
-        const existingStatus = String(existingSnap.data()?.approvalStatus ?? 'pending').toLowerCase();
-        if (existingStatus === 'pending') {
-          setErrorMsg('Email ini sudah terdaftar dan menunggu konfirmasi Pembina.');
-          return;
+      try {
+        const existingSnap = await getDoc(regRef);
+        if (existingSnap.exists()) {
+          const existingStatus = String(existingSnap.data()?.approvalStatus ?? 'pending').toLowerCase();
+          if (existingStatus === 'pending') {
+            setErrorMsg('Email ini sudah terdaftar dan menunggu konfirmasi Pembina.');
+            return;
+          }
+          if (existingStatus === 'approved') {
+            setErrorMsg('Email sudah disetujui. Silakan login dengan Google menggunakan email tersebut.');
+            return;
+          }
         }
-        if (existingStatus === 'approved') {
-          setErrorMsg('Email sudah disetujui. Silakan login dengan Google menggunakan email tersebut.');
-          return;
-        }
+      } catch (readErr) {
+        // Lanjut create jika get gagal (mis. rules belum publish)
+        console.warn('Registration pre-check skipped:', readErr);
       }
 
       const payload = stripUndefined({
