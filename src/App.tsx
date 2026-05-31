@@ -9,13 +9,13 @@ import { UnregisteredGate } from './components/UnregisteredGate';
 import { RegistrationLanding } from './components/RegistrationLanding';
 import { PurnaPendingGate } from './components/PurnaPendingGate';
 import { PurnaDashboard } from './components/PurnaDashboard';
-import { PurnaProfileForm } from './components/PurnaProfileForm';
+import { OnboardingWizard } from './components/OnboardingWizard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AnggotaDashboard } from './components/AnggotaDashboard';
 import { WelcomePage } from './components/WelcomePage';
 import { UserRole, UserStatus } from './types';
 import { isRegistrationAuthGate } from './lib/authGate';
-import { isPurnaProfileComplete } from './lib/purnaProfile';
+import { needsOnboarding } from './lib/onboardingProfile';
 import { Shield, LogOut } from 'lucide-react';
 import { getGoogleSignInErrorMessage } from './lib/authErrors';
 import { Alert } from './components/ui/Alert';
@@ -106,6 +106,10 @@ function ScoutAppContent() {
     );
   }
 
+  if (userProfile && needsOnboarding(userProfile)) {
+    return <OnboardingWizard />;
+  }
+
   if (userProfile && userProfile.role === UserRole.ADMIN) {
     return (
       <div id="scout-root-admin" className="min-h-screen bg-bento-bg">
@@ -134,9 +138,6 @@ function ScoutAppContent() {
   }
 
   if (userProfile && userProfile.role === UserRole.PURNA) {
-    if (!isPurnaProfileComplete(userProfile)) {
-      return <PurnaProfileForm />;
-    }
     return <PurnaDashboard />;
   }
 

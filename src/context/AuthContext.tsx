@@ -20,6 +20,7 @@ import { normalizeUserProfile } from '../lib/normalizeUserProfile';
 import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage, isMissingRedirectStateError } from '../lib/authErrors';
 import { UserProfile, UserRole, UserStatus, OperationType, PurnaApprovalStatus } from '../types';
 import { isPurnaProfileComplete, PurnaProfileFormData } from '../lib/purnaProfile';
+import { OnboardingFormData, onboardingFormToProfilePatch } from '../lib/onboardingProfile';
 import { normalizeMemberRegistration } from '../lib/purnaRegistration';
 import { AuthGateStatus } from '../lib/authGate';
 import { stripUndefined } from '../lib/firestoreUtils';
@@ -38,6 +39,7 @@ interface AuthContextType {
   registerProfile: (nama: string, kelas: string, regu: string) => Promise<void>;
   updateProfileDetails: (nama: string, kelas: string, regu: string) => Promise<void>;
   updatePurnaProfile: (fields: PurnaProfileFormData) => Promise<void>;
+  completeOnboarding: (form: OnboardingFormData) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -72,39 +74,12 @@ async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnTy
     userId: user.uid,
     nama: pre.nama,
     email: emailKey,
-    kelas: pre.kelas,
-    regu: pre.regu,
+    kelas: pre.kelas || '-',
+    regu: pre.regu || '-',
     status: pre.status ?? UserStatus.AKTIF,
     role,
     createdAt: serverTimestamp(),
-    tanggalLahir: pre.tanggalLahir,
-    alamat: pre.alamat,
-    agama: pre.agama,
-    pendidikanSd: pre.pendidikanSd,
-    pendidikanSmp: pre.pendidikanSmp,
-    pendidikanSma: pre.pendidikanSma,
-    pendidikanKuliah: pre.pendidikanKuliah,
-    statusPerkawinan: pre.statusPerkawinan,
-    profileComplete: role === UserRole.PURNA
-      ? (pre.profileComplete === true || isPurnaProfileComplete({
-          userId: user.uid,
-          nama: pre.nama,
-          email: emailKey,
-          kelas: pre.kelas,
-          regu: pre.regu,
-          status: pre.status ?? UserStatus.AKTIF,
-          role,
-          createdAt: null,
-          tanggalLahir: pre.tanggalLahir,
-          alamat: pre.alamat,
-          agama: pre.agama,
-          pendidikanSd: pre.pendidikanSd,
-          pendidikanSmp: pre.pendidikanSmp,
-          pendidikanSma: pre.pendidikanSma,
-          pendidikanKuliah: pre.pendidikanKuliah,
-          statusPerkawinan: pre.statusPerkawinan,
-        }))
-      : undefined,
+    profileComplete: role === UserRole.ADMIN,
   };
 
   await setDoc(userRef, stripUndefined(newProfile as Record<string, unknown>));
@@ -523,6 +498,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const completeOnboarding = async (form: OnboardingFormData) => {
+    if (!currentUser || !userProfile) throw new Error('Profil pengguna tidak ditemukan.');
+
+    const userRef = doc(db, 'users', currentUser.uid);
+    const patch = onboardingFormToProfilePatch(form);
+
+    try {
+      await updateDoc(userRef, stripUndefined(patch));
+      setUserProfile({
+        ...userProfile,
+        ...(patch as Partial<UserProfile>),
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${currentUser.uid}`);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -538,6 +530,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         registerProfile,
         updateProfileDetails,
         updatePurnaProfile,
+        completeOnboarding,
       }}
     >
       {children}

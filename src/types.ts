@@ -34,10 +34,18 @@ export interface UserProfile {
   status: UserStatus;
   role: UserRole;
   createdAt: any; // Firestore Timestamp
-  /** Purna-only fields */
+  namaDepan?: string;
+  namaBelakang?: string;
+  tempatLahir?: string;
+  /** YYYY-MM-DD */
   tanggalLahir?: string;
   alamat?: string;
   agama?: string;
+  noHp?: string;
+  /** Tahun masuk ForestBest, e.g. "2020" */
+  tahunMasuk?: string;
+  /** aktif = anggota aktif, purna = sudah purna */
+  membershipStatus?: 'aktif' | 'purna';
   pendidikanSd?: string;
   pendidikanSmp?: string;
   pendidikanSma?: string;

@@ -10,20 +10,12 @@ import {
   UserPlus,
   ArrowLeft,
   User,
-  MapPin,
-  Calendar,
-  BookOpen,
-  GraduationCap,
   Mail,
   Send,
   CheckCircle,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { PurnaApprovalStatus } from '../types';
-import { AGAMA_OPTIONS, STATUS_PERKAWINAN_OPTIONS } from '../lib/purnaProfile';
-import { stripUndefined } from '../lib/firestoreUtils';
 import { Alert } from './ui/Alert';
 
 interface RegistrationLandingProps {
@@ -37,20 +29,9 @@ export function RegistrationLanding({ onBack, initialEmail = '', lockEmail = fal
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [showBiodata, setShowBiodata] = useState(false);
 
   const [email, setEmail] = useState(initialEmail);
   const [nama, setNama] = useState('');
-  const [kelas, setKelas] = useState('');
-  const [regu, setRegu] = useState('');
-  const [tanggalLahir, setTanggalLahir] = useState('');
-  const [alamat, setAlamat] = useState('');
-  const [agama, setAgama] = useState<string>(AGAMA_OPTIONS[0]);
-  const [pendidikanSd, setPendidikanSd] = useState('');
-  const [pendidikanSmp, setPendidikanSmp] = useState('');
-  const [pendidikanSma, setPendidikanSma] = useState('');
-  const [pendidikanKuliah, setPendidikanKuliah] = useState('');
-  const [statusPerkawinan, setStatusPerkawinan] = useState<string>(STATUS_PERKAWINAN_OPTIONS[0]);
 
   const inputClass =
     'w-full px-4 py-3 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-xl text-sm bg-white placeholder-bento-muted';
@@ -89,28 +70,15 @@ export function RegistrationLanding({ onBack, initialEmail = '', lockEmail = fal
           }
         }
       } catch (readErr) {
-        // Lanjut create jika get gagal (mis. rules belum publish)
         console.warn('Registration pre-check skipped:', readErr);
       }
 
-      const payload = stripUndefined({
+      await setDoc(regRef, {
         email: emailKey,
         nama: nama.trim(),
-        kelas: kelas.trim() || undefined,
-        regu: regu.trim() || undefined,
-        tanggalLahir: tanggalLahir || undefined,
-        alamat: alamat.trim() || undefined,
-        agama: showBiodata && agama ? agama : undefined,
-        pendidikanSd: pendidikanSd.trim() || undefined,
-        pendidikanSmp: pendidikanSmp.trim() || undefined,
-        pendidikanSma: pendidikanSma.trim() || undefined,
-        pendidikanKuliah: pendidikanKuliah.trim() || undefined,
-        statusPerkawinan: showBiodata && statusPerkawinan ? statusPerkawinan : undefined,
         approvalStatus: PurnaApprovalStatus.PENDING,
         submittedAt: serverTimestamp(),
       });
-
-      await setDoc(regRef, payload);
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -138,6 +106,7 @@ export function RegistrationLanding({ onBack, initialEmail = '', lockEmail = fal
             Pembina akan meninjau dan menetapkan role Anda (Anggota, Pembina, atau Purna).
             Setelah disetujui, login dengan Google menggunakan{' '}
             <span className="font-mono text-bento-text">{email.trim().toLowerCase()}</span>.
+            Biodata lengkap akan diisi saat login pertama kali.
           </p>
           <button
             type="button"
@@ -180,7 +149,7 @@ export function RegistrationLanding({ onBack, initialEmail = '', lockEmail = fal
             </div>
           </div>
           <p className="text-[13px] sm:text-sm text-bento-muted mt-3 leading-relaxed">
-            Isi data dasar. Pembina akan validasi dan menetapkan role Anda sebelum akses dibuka.
+            Cukup isi email dan nama. Biodata lengkap akan dilengkapi setelah Pembina menyetujui dan Anda login pertama kali.
           </p>
         </div>
       </header>
@@ -217,85 +186,18 @@ export function RegistrationLanding({ onBack, initialEmail = '', lockEmail = fal
             <label htmlFor="reg-nama" className={labelClass}>Nama Lengkap</label>
             <div className="relative">
               <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-bento-muted" />
-              <input id="reg-nama" type="text" className={`${inputClass} pl-10`} value={nama} onChange={(e) => setNama(e.target.value)} required disabled={submitting} />
+              <input
+                id="reg-nama"
+                type="text"
+                className={`${inputClass} pl-10`}
+                placeholder="Nama sesuai Google"
+                value={nama}
+                onChange={(e) => setNama(e.target.value)}
+                required
+                disabled={submitting}
+              />
             </div>
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label htmlFor="reg-kelas" className={labelClass}>Kelas (opsional)</label>
-              <input id="reg-kelas" type="text" className={inputClass} placeholder="Contoh: X" value={kelas} onChange={(e) => setKelas(e.target.value)} disabled={submitting} />
-            </div>
-            <div className="space-y-1">
-              <label htmlFor="reg-regu" className={labelClass}>Regu (opsional)</label>
-              <input id="reg-regu" type="text" className={inputClass} placeholder="Contoh: Rajawali" value={regu} onChange={(e) => setRegu(e.target.value)} disabled={submitting} />
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowBiodata((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-bento-border bg-white text-sm font-semibold text-bento-text"
-          >
-            <span className="flex items-center gap-2">
-              <GraduationCap className="w-4 h-4 text-bento-primary" />
-              Biodata tambahan (opsional)
-            </span>
-            {showBiodata ? <ChevronUp className="w-4 h-4 text-bento-muted" /> : <ChevronDown className="w-4 h-4 text-bento-muted" />}
-          </button>
-
-          {showBiodata && (
-            <div className="space-y-3.5 pt-1 border-t border-bento-border">
-              <div className="space-y-1">
-                <label htmlFor="reg-tgl" className={labelClass}>Tanggal Lahir</label>
-                <div className="scout-date-field">
-                  <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-bento-muted pointer-events-none z-10" />
-                  <input id="reg-tgl" type="date" className={`${inputClass} scout-date-input pl-10`} value={tanggalLahir} onChange={(e) => setTanggalLahir(e.target.value)} disabled={submitting} />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="reg-alamat" className={labelClass}>Alamat</label>
-                <div className="relative">
-                  <MapPin className="absolute left-3.5 top-3.5 w-4 h-4 text-bento-muted" />
-                  <textarea id="reg-alamat" className={`${inputClass} pl-10 min-h-[80px] resize-y`} value={alamat} onChange={(e) => setAlamat(e.target.value)} disabled={submitting} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label htmlFor="reg-agama" className={labelClass}>Agama</label>
-                  <select id="reg-agama" className="scout-select bg-white" value={agama} onChange={(e) => setAgama(e.target.value)} disabled={submitting}>
-                    {AGAMA_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-                <div className="space-y-1">
-                  <label htmlFor="reg-nikah" className={labelClass}>Status Perkawinan</label>
-                  <select id="reg-nikah" className="scout-select bg-white" value={statusPerkawinan} onChange={(e) => setStatusPerkawinan(e.target.value)} disabled={submitting}>
-                    {STATUS_PERKAWINAN_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <p className="text-xs font-bold text-bento-text flex items-center gap-1.5">
-                  <BookOpen className="w-4 h-4 text-bento-primary" />
-                  Jejak Pendidikan
-                </p>
-                {[
-                  { id: 'reg-sd', label: 'SD', value: pendidikanSd, set: setPendidikanSd },
-                  { id: 'reg-smp', label: 'SMP', value: pendidikanSmp, set: setPendidikanSmp },
-                  { id: 'reg-sma', label: 'SMA', value: pendidikanSma, set: setPendidikanSma },
-                  { id: 'reg-kuliah', label: 'Kuliah', value: pendidikanKuliah, set: setPendidikanKuliah },
-                ].map(({ id, label, value, set }) => (
-                  <div key={id} className="space-y-1">
-                    <label htmlFor={id} className={labelClass}>{label}</label>
-                    <input id={id} type="text" className={inputClass} value={value} onChange={(e) => set(e.target.value)} disabled={submitting} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
 
           <button type="submit" disabled={submitting} className="w-full scout-btn-primary min-h-12 text-sm mt-2">
             {submitting ? (

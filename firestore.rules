@@ -70,6 +70,16 @@ service cloud.firestore {
         && (!('profileComplete' in incoming()) || incoming().profileComplete is bool);
     }
 
+    function validOptionalOnboardingFields() {
+      return validOptionalPurnaProfileFields()
+        && (!('namaDepan' in incoming()) || (incoming().namaDepan is string && incoming().namaDepan.size() <= 50))
+        && (!('namaBelakang' in incoming()) || (incoming().namaBelakang is string && incoming().namaBelakang.size() <= 50))
+        && (!('tempatLahir' in incoming()) || (incoming().tempatLahir is string && incoming().tempatLahir.size() <= 80))
+        && (!('noHp' in incoming()) || (incoming().noHp is string && incoming().noHp.size() <= 20))
+        && (!('tahunMasuk' in incoming()) || (incoming().tahunMasuk is string && incoming().tahunMasuk.size() == 4))
+        && (!('membershipStatus' in incoming()) || incoming().membershipStatus in ['aktif', 'purna']);
+    }
+
     // ── Users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
@@ -106,32 +116,25 @@ service cloud.firestore {
 
       allow update: if isSignedIn() && isValidId(userId) && (
         (isOwner(userId)
-          && existing().role == 'purna'
+          && existing().role in ['anggota', 'purna']
           && incoming().userId == existing().userId
           && incoming().role == existing().role
           && incoming().status == existing().status
           && incoming().email == existing().email
           && incoming().createdAt == existing().createdAt
           && incoming().diff(existing()).affectedKeys().hasOnly([
-            'nama', 'kelas', 'regu', 'tanggalLahir', 'alamat', 'agama',
+            'nama', 'namaDepan', 'namaBelakang', 'kelas', 'regu', 'tempatLahir',
+            'tanggalLahir', 'alamat', 'agama', 'noHp', 'tahunMasuk', 'membershipStatus',
             'pendidikanSd', 'pendidikanSmp', 'pendidikanSma', 'pendidikanKuliah',
             'statusPerkawinan', 'profileComplete'
           ])
           && incoming().nama is string && incoming().nama.size() <= 100
           && incoming().kelas is string && incoming().kelas.size() <= 20
           && incoming().regu is string && incoming().regu.size() <= 30
-          && (!('tanggalLahir' in incoming()) || (incoming().tanggalLahir is string && incoming().tanggalLahir.size() <= 10))
-          && (!('alamat' in incoming()) || (incoming().alamat is string && incoming().alamat.size() <= 500))
-          && (!('agama' in incoming()) || (incoming().agama is string && incoming().agama.size() <= 50))
-          && (!('pendidikanSd' in incoming()) || (incoming().pendidikanSd is string && incoming().pendidikanSd.size() <= 120))
-          && (!('pendidikanSmp' in incoming()) || (incoming().pendidikanSmp is string && incoming().pendidikanSmp.size() <= 120))
-          && (!('pendidikanSma' in incoming()) || (incoming().pendidikanSma is string && incoming().pendidikanSma.size() <= 120))
-          && (!('pendidikanKuliah' in incoming()) || (incoming().pendidikanKuliah is string && incoming().pendidikanKuliah.size() <= 120))
-          && (!('statusPerkawinan' in incoming()) || (incoming().statusPerkawinan is string && incoming().statusPerkawinan.size() <= 30))
-          && (!('profileComplete' in incoming()) || incoming().profileComplete is bool))
+          && validOptionalOnboardingFields())
         ||
         (isOwner(userId)
-          && existing().role != 'purna'
+          && existing().role == 'admin'
           && incoming().userId == existing().userId
           && incoming().role == existing().role
           && incoming().status == existing().status
@@ -236,20 +239,8 @@ service cloud.firestore {
         && incoming().approvalStatus == 'pending'
         && incoming().submittedAt == request.time
         && incoming().keys().hasOnly([
-          'email', 'nama', 'approvalStatus', 'submittedAt',
-          'kelas', 'regu', 'tanggalLahir', 'alamat', 'agama',
-          'pendidikanSd', 'pendidikanSmp', 'pendidikanSma', 'pendidikanKuliah', 'statusPerkawinan'
-        ])
-        && (!('kelas' in incoming()) || (incoming().kelas is string && incoming().kelas.size() <= 20))
-        && (!('regu' in incoming()) || (incoming().regu is string && incoming().regu.size() <= 30))
-        && (!('tanggalLahir' in incoming()) || (incoming().tanggalLahir is string && incoming().tanggalLahir.size() <= 10))
-        && (!('alamat' in incoming()) || (incoming().alamat is string && incoming().alamat.size() <= 500))
-        && (!('agama' in incoming()) || (incoming().agama is string && incoming().agama.size() <= 50))
-        && (!('pendidikanSd' in incoming()) || (incoming().pendidikanSd is string && incoming().pendidikanSd.size() <= 120))
-        && (!('pendidikanSmp' in incoming()) || (incoming().pendidikanSmp is string && incoming().pendidikanSmp.size() <= 120))
-        && (!('pendidikanSma' in incoming()) || (incoming().pendidikanSma is string && incoming().pendidikanSma.size() <= 120))
-        && (!('pendidikanKuliah' in incoming()) || (incoming().pendidikanKuliah is string && incoming().pendidikanKuliah.size() <= 120))
-        && (!('statusPerkawinan' in incoming()) || (incoming().statusPerkawinan is string && incoming().statusPerkawinan.size() <= 30));
+          'email', 'nama', 'approvalStatus', 'submittedAt'
+        ]);
     }
 
     function memberNotPreRegistered(email) {

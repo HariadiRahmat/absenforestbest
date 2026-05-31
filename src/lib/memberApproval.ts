@@ -27,28 +27,10 @@ export function buildPreRegisteredFromApplication(
     regu,
     role,
     status: UserStatus.AKTIF,
+    profileComplete: role === UserRole.ADMIN,
   };
 
   if (role === UserRole.PURNA) {
-    const draft: UserProfile = {
-      userId: 'draft',
-      nama: app.nama,
-      email: app.email,
-      kelas,
-      regu,
-      status: UserStatus.AKTIF,
-      role: UserRole.PURNA,
-      createdAt: null,
-      tanggalLahir: app.tanggalLahir,
-      alamat: app.alamat,
-      agama: app.agama,
-      pendidikanSd: app.pendidikanSd,
-      pendidikanSmp: app.pendidikanSmp,
-      pendidikanSma: app.pendidikanSma,
-      pendidikanKuliah: app.pendidikanKuliah,
-      statusPerkawinan: app.statusPerkawinan,
-    };
-
     if (app.tanggalLahir) base.tanggalLahir = app.tanggalLahir;
     if (app.alamat) base.alamat = app.alamat;
     if (app.agama) base.agama = app.agama;
@@ -57,7 +39,32 @@ export function buildPreRegisteredFromApplication(
     if (app.pendidikanSma) base.pendidikanSma = app.pendidikanSma;
     if (app.pendidikanKuliah) base.pendidikanKuliah = app.pendidikanKuliah;
     if (app.statusPerkawinan) base.statusPerkawinan = app.statusPerkawinan;
-    base.profileComplete = isPurnaProfileComplete(draft);
+    if (
+      app.tanggalLahir &&
+      app.alamat &&
+      app.pendidikanSd &&
+      app.statusPerkawinan
+    ) {
+      const draft: UserProfile = {
+        userId: 'draft',
+        nama: app.nama,
+        email: app.email,
+        kelas,
+        regu,
+        status: UserStatus.AKTIF,
+        role: UserRole.PURNA,
+        createdAt: null,
+        tanggalLahir: app.tanggalLahir,
+        alamat: app.alamat,
+        agama: app.agama,
+        pendidikanSd: app.pendidikanSd,
+        pendidikanSmp: app.pendidikanSmp,
+        pendidikanSma: app.pendidikanSma,
+        pendidikanKuliah: app.pendidikanKuliah,
+        statusPerkawinan: app.statusPerkawinan,
+      };
+      base.profileComplete = isPurnaProfileComplete(draft);
+    }
   }
 
   return base;
