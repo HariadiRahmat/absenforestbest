@@ -153,47 +153,55 @@ export function AnggotaDashboard() {
   }
 
   return (
-    <div id="scout-anggota-dashboard-wrapper" className="min-h-screen bg-bento-bg text-bento-text pb-8 sm:pb-12">
+    <div id="scout-anggota-dashboard-wrapper" className="min-h-screen bg-bento-bg text-bento-text pb-[max(2rem,env(safe-area-inset-bottom))] sm:pb-12">
       <div className="scout-page max-w-4xl pt-4 sm:pt-6">
-        <header className="scout-card flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
+        <header className="scout-card px-4 py-3.5 sm:px-6 sm:py-5">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 sm:w-11 sm:h-11 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
               <Compass className="w-5 h-5 text-bento-dark" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Halo,</p>
-              <h1 className="text-lg sm:text-xl font-bold text-bento-text truncate">{userProfile?.nama}</h1>
-              <p className="text-xs sm:text-sm text-bento-muted mt-0.5 truncate">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Halo,</p>
+              <h1 className="text-base sm:text-xl font-bold text-bento-text truncate leading-tight">{userProfile?.nama}</h1>
+              <p className="text-[11px] sm:text-sm text-bento-muted mt-0.5 truncate">
                 Regu {userProfile?.regu} · Kelas {userProfile?.kelas}
               </p>
             </div>
+            <button
+              id="scout-btn-logout-header"
+              onClick={logout}
+              className="scout-btn-secondary shrink-0 text-xs py-2 px-3 sm:hidden"
+              aria-label="Keluar"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
           <button
-            id="scout-btn-logout-header"
+            id="scout-btn-logout-header-desktop"
             onClick={logout}
-            className="scout-btn-secondary w-full sm:w-auto text-xs py-2.5 px-4 shrink-0"
+            className="scout-btn-secondary hidden sm:inline-flex w-auto mt-4 text-xs py-2.5 px-4"
           >
             <LogOut className="w-4 h-4" />
             Keluar
           </button>
         </header>
 
-        <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-5">
-          <div className="scout-card p-4 sm:p-5 flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-bento-accent flex items-center justify-center shrink-0">
-              <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-bento-dark" />
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 mt-3 sm:mt-5">
+          <div className="scout-card scout-stat-card">
+            <div className="scout-stat-icon bg-bento-accent">
+              <Flame className="w-4 h-4 text-bento-dark" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide truncate">Streak</p>
-              <p className="text-xl sm:text-2xl font-bold text-bento-text mt-0.5">{streakCount} hari</p>
+              <p className="text-[10px] font-semibold uppercase text-bento-muted tracking-wide truncate">Streak</p>
+              <p className="text-lg sm:text-2xl font-bold text-bento-text mt-0.5 leading-none">{streakCount} hari</p>
             </div>
           </div>
-          <div className="scout-card p-4 sm:p-5 flex items-center gap-3 min-w-0">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-bento-highlight flex items-center justify-center shrink-0">
-              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-bento-primary" />
+          <div className="scout-card scout-stat-card">
+            <div className="scout-stat-icon bg-bento-highlight">
+              <Calendar className="w-4 h-4 text-bento-primary" />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Hari Ini</p>
+              <p className="text-[10px] font-semibold uppercase text-bento-muted tracking-wide">Hari Ini</p>
               <p className="text-xs sm:text-sm font-bold text-bento-text mt-0.5 truncate">{todayStr}</p>
             </div>
           </div>
@@ -298,24 +306,24 @@ export function AnggotaDashboard() {
                     return (
                       <div
                         key={record.id}
-                        className="flex items-center justify-between p-4 bg-bento-soft rounded-2xl border border-bento-border hover:bg-white transition"
+                        className="scout-member-card flex items-center justify-between gap-3"
                       >
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-2xl bg-bento-accent flex items-center justify-center shrink-0">
-                            <CheckCircle className="w-5 h-5 text-bento-dark" />
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="scout-avatar bg-bento-accent text-bento-dark">
+                            <CheckCircle className="w-4 h-4" />
                           </div>
-                          <div>
-                            <span className="text-sm font-semibold text-bento-text">{record.tanggal}</span>
-                            <div className="flex items-center gap-1.5 text-xs text-bento-muted mt-0.5">
-                              <Clock className="w-3.5 h-3.5" />
-                              {checkTime} WIB
+                          <div className="min-w-0">
+                            <span className="text-sm font-semibold text-bento-text block truncate">{record.tanggal}</span>
+                            <div className="flex items-center gap-1.5 text-[11px] text-bento-muted mt-0.5">
+                              <Clock className="w-3 h-3 shrink-0" />
+                              {checkTime}
                               <span>·</span>
-                              <MapPin className="w-3.5 h-3.5" />
+                              <MapPin className="w-3 h-3 shrink-0" />
                               {record.latitude ? 'GPS' : 'Tanpa GPS'}
                             </div>
                           </div>
                         </div>
-                        <span className="px-3 py-1 bg-lime-100 text-lime-800 rounded-full text-[11px] font-semibold uppercase">
+                        <span className="px-2.5 py-1 bg-lime-50 text-lime-800 rounded-full text-[10px] font-semibold uppercase shrink-0 border border-lime-200">
                           {record.status}
                         </span>
                       </div>

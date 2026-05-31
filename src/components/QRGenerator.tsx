@@ -54,7 +54,7 @@ export function QRGenerator({ token, dateStr, onRotateToken, loading, isActive }
   };
 
   return (
-    <div id="scout-qr-generator-card" className="scout-card p-4 sm:p-6 flex flex-col items-center w-full">
+    <div id="scout-qr-generator-card" className="scout-card p-4 sm:p-6 flex flex-col items-center w-full max-w-md mx-auto lg:max-w-none">
       <div className="flex items-center gap-1.5 px-3 py-1.5 bg-bento-accent text-bento-dark rounded-full text-xs font-semibold mb-5">
         <ShieldCheck className="w-4 h-4" />
         QR Harian Aktif

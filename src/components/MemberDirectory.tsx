@@ -27,9 +27,9 @@ export interface MemberDirectoryProps {
 
 const copy = {
   [UserRole.ANGGOTA]: {
-    title: 'Daftar Anggota Pramuka',
+    title: 'Daftar Anggota',
     subtitle: 'Kelola data anggota, regu, dan status keaktifan.',
-    searchPlaceholder: 'Cari nama, email, kelas, regu...',
+    searchPlaceholder: 'Cari nama, email, kelas...',
     addLabel: 'Tambah Anggota',
     emptyLabel: 'Belum ada anggota yang cocok dengan pencarian atau filter.',
     showClassSquadFilters: true,
@@ -43,6 +43,13 @@ const copy = {
     showClassSquadFilters: false,
   },
 };
+
+function getInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
 
 export function MemberDirectory({
   role,
@@ -65,71 +72,74 @@ export function MemberDirectory({
 
   return (
     <div className="scout-card p-4 sm:p-6">
-      <div className="mb-6 pb-4 border-b border-bento-border">
-        <h3 className="text-base font-bold text-bento-text">{labels.title}</h3>
-        <p className="text-sm text-bento-muted mt-1">{labels.subtitle}</p>
+      <div className="scout-section-head">
+        <div className="min-w-0">
+          <h3 className="text-base font-bold text-bento-text">{labels.title}</h3>
+          <p className="text-xs sm:text-sm text-bento-muted mt-0.5 leading-relaxed">{labels.subtitle}</p>
+        </div>
+        {!loading && members.length > 0 && (
+          <span className="scout-count-badge">{members.length}</span>
+        )}
       </div>
 
-      <div className="flex flex-col gap-3 mb-6">
+      <div className="flex flex-col gap-2.5 mb-5">
         <div className="relative w-full">
-          <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
+          <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <Search className="h-4 w-4 text-bento-muted" />
           </span>
           <input
             type="text"
-            className="w-full h-11 pl-10 pr-4 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm text-bento-text placeholder-bento-muted bg-bento-soft"
+            className="scout-input"
             placeholder={labels.searchPlaceholder}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          {labels.showClassSquadFilters && (
-            <>
-              <select
-                className="h-11 w-full sm:flex-1 sm:min-w-0 px-3 border border-bento-border rounded-2xl text-sm font-medium bg-white text-bento-text appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
-                value={filterRegu}
-                onChange={(e) => onFilterReguChange(e.target.value)}
-              >
-                <option value="ALL">Semua Regu</option>
-                {uniqueRegus.map((r) => (
-                  <option key={r} value={r}>{r}</option>
-                ))}
-              </select>
-              <select
-                className="h-11 w-full sm:flex-1 sm:min-w-0 px-3 border border-bento-border rounded-2xl text-sm font-medium bg-white text-bento-text appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
-                value={filterKelas}
-                onChange={(e) => onFilterKelasChange(e.target.value)}
-              >
-                <option value="ALL">Semua Kelas</option>
-                {uniqueClasses.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </>
-          )}
+        {labels.showClassSquadFilters ? (
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              className="scout-select"
+              value={filterRegu}
+              onChange={(e) => onFilterReguChange(e.target.value)}
+            >
+              <option value="ALL">Semua Regu</option>
+              {uniqueRegus.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+            <select
+              className="scout-select"
+              value={filterKelas}
+              onChange={(e) => onFilterKelasChange(e.target.value)}
+            >
+              <option value="ALL">Semua Kelas</option>
+              {uniqueClasses.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
+          </div>
+        ) : null}
 
-          <button type="button" onClick={onAdd} className="h-11 w-full sm:w-auto sm:shrink-0 scout-btn-primary text-sm px-5">
-            <Plus className="w-4 h-4" />
-            {labels.addLabel}
-          </button>
-        </div>
+        <button type="button" onClick={onAdd} className="h-11 w-full scout-btn-primary text-sm">
+          <Plus className="w-4 h-4" />
+          {labels.addLabel}
+        </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-bento-muted text-sm">
+        <div className="text-center py-14 text-bento-muted text-sm">
           <div className="w-6 h-6 border-2 border-bento-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
           Memuat data...
         </div>
       ) : members.length === 0 ? (
-        <div className="text-center py-12 text-bento-muted text-sm">
-          <Users className="w-12 h-12 stroke-1 mx-auto mb-2 opacity-40" />
-          {labels.emptyLabel}
+        <div className="text-center py-14 text-bento-muted text-sm px-4">
+          <Users className="w-10 h-10 stroke-1 mx-auto mb-3 opacity-30" />
+          <p className="leading-relaxed">{labels.emptyLabel}</p>
         </div>
       ) : (
         <>
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-2.5">
             {members.map((member) => (
               <MemberCard
                 key={member.userId}
@@ -229,32 +239,40 @@ function MemberCard({
   onDelete: (userId: string) => void;
   onToggleStatus: (m: UserProfile) => void;
 }) {
+  const avatarBg = role === UserRole.ADMIN ? 'bg-bento-accent text-bento-dark' : 'bg-bento-highlight text-bento-primary';
+
   return (
-    <div className="border border-bento-border rounded-2xl p-4 bg-bento-soft/30">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="font-bold text-bento-text truncate">{member.nama}</p>
-          <p className="text-[11px] text-bento-muted font-mono truncate mt-0.5">{member.email}</p>
+    <div className="scout-member-card">
+      <div className="flex items-center gap-3">
+        <div className={`scout-avatar ${avatarBg}`}>
+          {getInitials(member.nama)}
         </div>
-        <StatusBadge member={member} onToggle={() => onToggleStatus(member)} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className="font-semibold text-sm text-bento-text truncate leading-tight">{member.nama}</p>
+            <StatusBadge member={member} onToggle={() => onToggleStatus(member)} />
+          </div>
+          <p className="text-[11px] text-bento-muted truncate mt-0.5">{member.email}</p>
+        </div>
       </div>
-      <div className="flex flex-wrap gap-2 mt-3 text-xs text-bento-muted">
+
+      <div className="flex flex-wrap gap-1.5 mt-3">
         {role === UserRole.ANGGOTA ? (
           <>
-            <span>Kelas {member.kelas}</span>
-            <span>·</span>
-            <span>Regu {member.regu}</span>
+            <span className="scout-chip">Kelas {member.kelas}</span>
+            <span className="scout-chip">Regu {member.regu}</span>
           </>
         ) : (
-          <span>{member.kelas} · {member.regu}</span>
+          <span className="scout-chip">{member.kelas} · {member.regu}</span>
         )}
       </div>
-      <div className="flex gap-2 mt-3 pt-3 border-t border-bento-border">
-        <button type="button" onClick={() => onEdit(member)} className="flex-1 scout-btn-secondary text-xs py-2">
+
+      <div className="scout-action-row">
+        <button type="button" onClick={() => onEdit(member)} className="scout-action-btn">
           <Edit2 className="w-3.5 h-3.5" />
           Ubah
         </button>
-        <button type="button" onClick={() => onDelete(member.userId)} className="flex-1 scout-btn-secondary text-xs py-2 text-rose-700 border-rose-100">
+        <button type="button" onClick={() => onDelete(member.userId)} className="scout-action-btn scout-action-btn-danger">
           <Trash2 className="w-3.5 h-3.5" />
           Hapus
         </button>

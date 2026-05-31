@@ -381,7 +381,7 @@ export function AdminDashboard() {
   });
 
   return (
-    <div id="scout-admin-dashboard-container" className="min-h-screen bg-bento-bg text-bento-text pb-8 sm:pb-12">
+    <div id="scout-admin-dashboard-container" className="min-h-screen bg-bento-bg text-bento-text pb-[max(2rem,env(safe-area-inset-bottom))] sm:pb-12">
 
       {rulesError && (
         <div className="scout-page pt-4">
@@ -403,63 +403,79 @@ export function AdminDashboard() {
       )}
       
       <div className="scout-page max-w-6xl pt-4 sm:pt-6">
-        <header className="scout-card flex flex-col gap-3 px-4 py-4 sm:px-6 sm:py-5">
+        <header className="scout-card px-4 py-3.5 sm:px-6 sm:py-5">
           <div className="flex items-center gap-3 min-w-0">
             <div className="w-10 h-10 sm:w-11 sm:h-11 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
               <Users className="w-5 h-5 text-bento-dark" />
             </div>
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Control Panel</p>
-              <h1 className="text-lg sm:text-xl font-bold text-bento-text truncate">{userProfile?.nama || 'Pembina'}</h1>
-              <p className="text-xs sm:text-sm text-bento-muted mt-0.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Control Panel</p>
+              <h1 className="text-base sm:text-xl font-bold text-bento-text truncate leading-tight">{userProfile?.nama || 'Pembina'}</h1>
+              <p className="text-[11px] sm:text-sm text-bento-muted mt-0.5 truncate">
                 <span className="sm:hidden">{formatHeaderDate(true)}</span>
                 <span className="hidden sm:inline">{formatHeaderDate()}</span>
               </p>
             </div>
+            <button
+              id="btn-scout-header-report"
+              onClick={handleRotateQR}
+              className="scout-btn-primary shrink-0 text-xs sm:text-sm py-2 px-3 sm:px-5 sm:hidden"
+              aria-label="Rotate Token"
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
           </div>
           <button
-            id="btn-scout-header-report"
+            id="btn-scout-header-report-desktop"
             onClick={handleRotateQR}
-            className="scout-btn-primary w-full sm:w-auto sm:self-end text-sm py-2.5 px-5 shrink-0"
+            className="scout-btn-primary hidden sm:inline-flex w-auto mt-4 text-sm py-2.5 px-5"
           >
             <Sparkles className="w-4 h-4" />
             Rotate Token
           </button>
         </header>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-5">
-          <div className="scout-card p-4 sm:p-5 min-h-[96px] sm:min-h-[110px]">
-            <div className="w-8 h-8 rounded-xl bg-bento-accent flex items-center justify-center mb-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4 mt-3 sm:mt-5">
+          <div className="scout-card scout-stat-card sm:min-h-[110px]">
+            <div className="scout-stat-icon bg-bento-accent">
               <CheckCircle className="w-4 h-4 text-bento-dark" />
             </div>
-            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide truncate">Hadir</p>
-            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">
-              {loggedTodayCount} <span className="text-xs sm:text-sm font-medium text-bento-muted">/ {totalScoutsCount}</span>
-            </h2>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase text-bento-muted tracking-wide truncate">Hadir</p>
+              <h2 className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 text-bento-text leading-none">
+                {loggedTodayCount} <span className="text-[11px] sm:text-sm font-medium text-bento-muted">/ {totalScoutsCount}</span>
+              </h2>
+            </div>
           </div>
 
-          <div className="scout-card p-4 sm:p-5 min-h-[96px] sm:min-h-[110px]">
-            <div className="w-8 h-8 rounded-xl bg-bento-soft flex items-center justify-center mb-2 sm:mb-3">
+          <div className="scout-card scout-stat-card sm:min-h-[110px]">
+            <div className="scout-stat-icon bg-bento-soft">
               <HelpCircle className="w-4 h-4 text-bento-muted" />
             </div>
-            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Belum Absen</p>
-            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">{missingTodayCount}</h2>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase text-bento-muted tracking-wide">Belum Absen</p>
+              <h2 className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 text-bento-text leading-none">{missingTodayCount}</h2>
+            </div>
           </div>
 
-          <div className="scout-card p-4 sm:p-5 min-h-[96px] sm:min-h-[110px]">
-            <div className="w-8 h-8 rounded-xl bg-bento-highlight flex items-center justify-center mb-2 sm:mb-3">
+          <div className="scout-card scout-stat-card sm:min-h-[110px]">
+            <div className="scout-stat-icon bg-bento-highlight">
               <Users className="w-4 h-4 text-bento-primary" />
             </div>
-            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Anggota</p>
-            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">{totalScoutsCount}</h2>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase text-bento-muted tracking-wide">Anggota</p>
+              <h2 className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 text-bento-text leading-none">{totalScoutsCount}</h2>
+            </div>
           </div>
 
-          <div className="scout-card p-4 sm:p-5 min-h-[96px] sm:min-h-[110px]">
-            <div className="w-8 h-8 rounded-xl bg-bento-accent flex items-center justify-center mb-2 sm:mb-3">
+          <div className="scout-card scout-stat-card sm:min-h-[110px]">
+            <div className="scout-stat-icon bg-bento-accent">
               <Shield className="w-4 h-4 text-bento-dark" />
             </div>
-            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Pembina</p>
-            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">{totalPembinaCount}</h2>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase text-bento-muted tracking-wide">Pembina</p>
+              <h2 className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1 text-bento-text leading-none">{totalPembinaCount}</h2>
+            </div>
           </div>
         </div>
 
@@ -496,76 +512,71 @@ export function AdminDashboard() {
               </div>
 
               {/* Real-time incoming attendance logger monitor */}
-              <div className="lg:col-span-2 scout-card p-4 sm:p-6 flex flex-col min-h-[360px] sm:min-h-[480px]">
-                <div className="flex items-center justify-between mb-4 pb-2 border-b border-bento-soft">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-5 h-5 text-bento-primary" />
-                    <h3 className="font-sans text-sm font-extrabold text-bento-text">
-                      Live Absensi Masuk ({attendanceToday.length})
+              <div className="lg:col-span-2 scout-card p-4 sm:p-6 flex flex-col min-h-[320px] sm:min-h-[480px]">
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-bento-border">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Clock className="w-5 h-5 text-bento-primary shrink-0" />
+                    <h3 className="text-sm font-bold text-bento-text truncate">
+                      Live Absensi ({attendanceToday.length})
                     </h3>
                   </div>
-                  <span className="hidden sm:flex items-center gap-1.5 text-[10px] text-bento-primary bg-bento-soft px-2.5 py-1 rounded-full font-bold">
-                    <span className="w-1.5 h-1.5 bg-bento-primary rounded-full animate-ping" />
+                  <span className="flex items-center gap-1.5 text-[10px] text-bento-primary bg-bento-highlight px-2 py-1 rounded-full font-semibold shrink-0">
+                    <span className="w-1.5 h-1.5 bg-bento-primary rounded-full animate-pulse" />
                     LIVE
                   </span>
                 </div>
 
                 {attendanceToday.length === 0 ? (
-                  <div className="flex-1 flex flex-col items-center justify-center py-12 text-center text-slate-400 text-xs">
-                    <Clock className="w-12 h-12 stroke-1 text-slate-300 mb-2 animate-pulse" />
-                    Belum ada anggota pramuka yang check-in hari ini.<br />Tampilkan QR code di atas agar mereka bisa mulai memindai.
+                  <div className="flex-1 flex flex-col items-center justify-center py-10 text-center text-bento-muted text-xs px-4">
+                    <Clock className="w-10 h-10 stroke-1 text-bento-border mb-3" />
+                    <p className="leading-relaxed max-w-xs">
+                      Belum ada anggota yang check-in hari ini. Tampilkan QR code agar mereka bisa mulai memindai.
+                    </p>
                   </div>
                 ) : (
-                  <div className="flex-1 overflow-auto max-h-[420px] pr-2 space-y-3">
+                  <div className="flex-1 overflow-auto max-h-[420px] space-y-2.5">
                     {attendanceToday.map((record) => {
                       const timeStr = record.timestamp?.seconds
                         ? new Date(record.timestamp.seconds * 1000).toLocaleTimeString('id-ID', { hour12: false })
                         : '--:--';
+                      const memberInfo = users.find(u => u.userId === record.userId);
                       return (
-                        <div
-                          key={record.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50 border border-slate-200/40 rounded-2xl hover:bg-slate-100/60 transition gap-2"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-emerald-50 text-emerald-800 flex items-center justify-center border border-emerald-100 font-bold shrink-0">
+                        <div key={record.id} className="scout-feed-item">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-bento-accent text-bento-dark flex items-center justify-center font-bold text-sm shrink-0">
                               {record.nama?.charAt(0).toUpperCase()}
                             </div>
-                            <div>
-                              <h4 className="text-xs font-extrabold text-slate-800">{record.nama}</h4>
-                              <p className="text-[10px] text-slate-400 mt-0.5">
-                                Regu {users.find(u => u.userId === record.userId)?.regu || 'Anggota'} • Kelas {users.find(u => u.userId === record.userId)?.kelas || '-'}
+                            <div className="min-w-0">
+                              <h4 className="text-sm font-semibold text-bento-text truncate">{record.nama}</h4>
+                              <p className="text-[11px] text-bento-muted mt-0.5 truncate">
+                                Regu {memberInfo?.regu || '—'} · Kelas {memberInfo?.kelas || '—'}
                               </p>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between sm:justify-end gap-4 border-t sm:border-t-0 border-slate-100 pt-2 sm:pt-0">
+                          <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 pl-[52px] sm:pl-0">
                             <div className="text-left sm:text-right">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase font-mono">Diterima</div>
-                              <div className="font-sans text-xs font-bold text-slate-600 font-mono mt-0.5 flex items-center gap-1">
-                                <Clock className="w-3.5 h-3.5 text-slate-400" />
-                                {timeStr} WIB
+                              <div className="text-[10px] font-semibold text-bento-muted uppercase">Waktu</div>
+                              <div className="text-xs font-semibold text-bento-text mt-0.5 flex items-center gap-1">
+                                <Clock className="w-3.5 h-3.5 text-bento-muted" />
+                                {timeStr}
                               </div>
                             </div>
-
-                            {/* GPS locator coordinates link */}
                             <div className="text-right">
-                              <div className="text-[10px] font-bold text-slate-400 uppercase font-mono">Lokasi Geospasial</div>
-                              <div className="mt-0.5 text-[11px] font-sans">
-                                {record.latitude ? (
-                                  <a
-                                    id={`map-link-${record.id}`}
-                                    href={`https://maps.google.com/?q=${record.latitude},${record.longitude}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-1 text-emerald-700 hover:text-emerald-900 font-bold underline cursor-pointer"
-                                  >
-                                    <MapPin className="w-3 h-3" />
-                                    Buka Peta GPS
-                                  </a>
-                                ) : (
-                                  <span className="text-slate-400 italic">Tanpa Koordinat</span>
-                                )}
-                              </div>
+                              {record.latitude ? (
+                                <a
+                                  id={`map-link-${record.id}`}
+                                  href={`https://maps.google.com/?q=${record.latitude},${record.longitude}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-bento-primary"
+                                >
+                                  <MapPin className="w-3.5 h-3.5" />
+                                  GPS
+                                </a>
+                              ) : (
+                                <span className="text-[11px] text-bento-muted">Tanpa GPS</span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -649,8 +660,8 @@ export function AdminDashboard() {
                                 {count} / {totalScoutsCount} ({countPercentage}%)
                               </span>
                             </div>
-                            <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                              <div className="bg-emerald-600 h-full rounded-full transition-all" style={{ width: `${Math.min(100, countPercentage)}%` }} />
+                            <div className="w-full bg-bento-border h-1.5 rounded-full overflow-hidden">
+                              <div className="bg-bento-primary h-full rounded-full transition-all" style={{ width: `${Math.min(100, countPercentage)}%` }} />
                             </div>
                           </div>
                         );
@@ -658,10 +669,47 @@ export function AdminDashboard() {
                     </div>
                   </div>
 
-                  {/* Complete Historical Log Table */}
-                  <div className="pt-4 border-t border-slate-100">
-                    <h4 className="text-xs font-extrabold text-slate-800 tracking-wider mb-3 uppercase">Daftar Audit Log Absensi Lengkap</h4>
-                    <div className="overflow-x-auto max-h-[350px] overflow-y-auto">
+                  {/* Complete Historical Log — mobile cards + desktop table */}
+                  <div className="pt-4 border-t border-bento-border">
+                    <h4 className="text-xs font-bold text-bento-text tracking-wider mb-3 uppercase">Log Absensi Lengkap</h4>
+
+                    <div className="md:hidden space-y-2.5 max-h-[360px] overflow-y-auto">
+                      {historicalAttendance.map((log) => (
+                        <div key={log.id} className="scout-member-card">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-semibold text-bento-text truncate">{log.nama}</p>
+                              <p className="text-[11px] text-bento-muted mt-0.5">{log.tanggal}</p>
+                            </div>
+                            <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-lime-50 text-lime-800 border border-lime-200 shrink-0">
+                              {log.status}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-bento-border text-[11px]">
+                            <span className="text-bento-muted flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {log.timestamp?.seconds ? new Date(log.timestamp.seconds * 1000).toLocaleTimeString('id-ID', { hour12: false }) : '--:--'}
+                            </span>
+                            {log.latitude ? (
+                              <a
+                                id={`rekap-map-link-${log.id}`}
+                                href={`https://maps.google.com/?q=${log.latitude},${log.longitude}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-bento-primary font-semibold flex items-center gap-1"
+                              >
+                                <MapPin className="w-3 h-3" />
+                                GPS
+                              </a>
+                            ) : (
+                              <span className="text-bento-muted">Tanpa GPS</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="hidden md:block overflow-x-auto max-h-[350px] overflow-y-auto">
                       <table className="w-full text-left border-collapse">
                         <thead>
                           <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
