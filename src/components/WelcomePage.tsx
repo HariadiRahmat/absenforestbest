@@ -24,123 +24,128 @@ interface WelcomePageProps {
 const pillars = [
   {
     icon: QrCode,
-    title: 'Absensi Anggota',
+    title: 'Absensi',
+    titleDesktop: 'Absensi Anggota',
     desc: 'Check-in harian via QR dinamis dan verifikasi lokasi GPS.',
     accent: 'bg-bento-highlight text-bento-primary',
   },
   {
     icon: Shield,
-    title: 'Panel Pembina',
+    title: 'Pembina',
+    titleDesktop: 'Panel Pembina',
     desc: 'Kelola keanggotaan, absensi real-time, dan pengaturan latihan.',
     accent: 'bg-bento-accent text-bento-dark',
   },
   {
     icon: FileText,
-    title: 'Portal Purna',
+    title: 'Purna',
+    titleDesktop: 'Portal Purna',
     desc: 'Akses dokumentasi kegiatan dan data alumni ForestBest Scout.',
-    accent: 'bg-bento-soft text-bento-text border border-bento-border',
+    accent: 'bg-white text-bento-text border border-bento-border',
   },
 ];
 
 export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }: WelcomePageProps) {
   return (
-    <div id="scout-welcome-page" className="min-h-screen bg-bento-bg flex flex-col pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-      <div className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-bento-highlight via-bento-bg to-bento-accent/20 pointer-events-none" />
-        <div className="absolute -top-24 -right-16 w-64 h-64 rounded-full bg-bento-accent/25 blur-3xl pointer-events-none" />
-        <div className="absolute top-32 -left-20 w-48 h-48 rounded-full bg-bento-primary/10 blur-3xl pointer-events-none" />
-
-        <div className="relative scout-page max-w-lg mx-auto px-4 pt-10 sm:pt-14 pb-8 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/80 border border-bento-border text-[11px] font-semibold text-bento-muted mb-6 backdrop-blur-sm">
-            <Users className="w-3.5 h-3.5 text-bento-primary" />
+    <div id="scout-welcome-page" className="scout-welcome-shell">
+      <header className="scout-welcome-hero">
+        <div className="scout-welcome-hero-bg" aria-hidden />
+        <div className="relative max-w-lg mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/90 border border-bento-border text-[10px] sm:text-[11px] font-semibold text-bento-muted mb-4 backdrop-blur-sm">
+            <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-bento-primary shrink-0" />
             Platform Komunitas Pramuka
           </div>
 
-          <div className="w-16 h-16 bg-bento-accent rounded-[1.25rem] flex items-center justify-center mx-auto mb-5 shadow-sm border border-bento-accent-muted/50">
-            <Compass className="w-8 h-8 text-bento-dark" />
+          <div className="w-14 h-14 sm:w-16 sm:h-16 bg-bento-accent rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4 shadow-sm border border-white/60">
+            <Compass className="w-7 h-7 sm:w-8 sm:h-8 text-bento-dark" />
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-bold text-bento-text tracking-tight leading-tight">
+          <h1 className="text-[1.625rem] sm:text-3xl font-bold text-bento-text tracking-tight leading-tight px-2">
             ForestBest Scout
           </h1>
-          <p className="text-sm sm:text-base text-bento-muted mt-3 leading-relaxed max-w-sm mx-auto">
-            Satu platform untuk anggota aktif, pembina, dan alumni Purna ForestBest Scout.
+          <p className="text-[13px] sm:text-base text-bento-muted mt-2 leading-relaxed max-w-[280px] sm:max-w-sm mx-auto px-1">
+            Platform untuk anggota aktif, pembina, dan alumni Purna.
           </p>
         </div>
-      </div>
+      </header>
 
-      <div className="flex-1 scout-page max-w-lg mx-auto w-full px-4 -mt-2">
-        <div className="space-y-2.5 mb-6">
-          {pillars.map(({ icon: Icon, title, desc, accent }) => (
-            <div
-              key={title}
-              className="flex items-start gap-3.5 p-4 bg-white rounded-2xl border border-bento-border shadow-sm"
-            >
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${accent}`}>
-                <Icon className="w-5 h-5" />
+      <main className="scout-welcome-body">
+        <div className="max-w-lg mx-auto w-full">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted mb-3 sm:mb-4">
+            Layanan platform
+          </p>
+
+          <div className="scout-welcome-pillars">
+            {pillars.map(({ icon: Icon, title, titleDesktop, desc, accent }) => (
+              <div key={title} className="scout-welcome-pillar">
+                <div className={`scout-welcome-pillar-icon ${accent}`}>
+                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="scout-welcome-pillar-title sm:hidden">{title}</p>
+                  <p className="scout-welcome-pillar-title hidden sm:block">{titleDesktop}</p>
+                  <p className="scout-welcome-pillar-desc">{desc}</p>
+                </div>
               </div>
-              <div className="min-w-0 text-left">
-                <h2 className="text-sm font-bold text-bento-text">{title}</h2>
-                <p className="text-xs text-bento-muted mt-0.5 leading-relaxed">{desc}</p>
-              </div>
+            ))}
+          </div>
+
+          <div className="border-t border-bento-border pt-4 sm:pt-5">
+            <div className="text-center mb-4">
+              <p className="text-[15px] sm:text-base font-bold text-bento-text">Masuk ke akun</p>
+              <p className="text-xs text-bento-muted mt-1">
+                Untuk anggota, pembina, dan purna terdaftar
+              </p>
             </div>
-          ))}
-        </div>
 
-        <div className="scout-card p-5 sm:p-6 space-y-4">
-          <div className="text-center pb-1">
-            <p className="text-sm font-bold text-bento-text">Masuk ke akun Anda</p>
-            <p className="text-xs text-bento-muted mt-1">
-              Anggota, Pembina, dan Purna yang sudah terdaftar
-            </p>
+            {(loginError || authError) && (
+              <Alert
+                variant="error"
+                title="Gagal masuk"
+                message={loginError || authError || undefined}
+                tips={['Pastikan akun Google sudah terdaftar.', 'Purna baru menunggu konfirmasi admin.']}
+                className="mb-4"
+              />
+            )}
+
+            <div className="scout-welcome-actions">
+              <button
+                id="btn-scout-google-login"
+                type="button"
+                onClick={onLogin}
+                className="scout-btn-primary"
+              >
+                <svg className="w-[18px] h-[18px] fill-current shrink-0" viewBox="0 0 24 24" aria-hidden>
+                  <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.984 0-.743-.08-1.309-.176-1.863H12.24z" />
+                </svg>
+                Masuk dengan Google
+              </button>
+
+              <div className="scout-welcome-divider">
+                <span>atau</span>
+              </div>
+
+              <button
+                id="btn-purna-register"
+                type="button"
+                onClick={onPurnaRegister}
+                className="scout-btn-secondary"
+              >
+                <Award className="w-[18px] h-[18px]" />
+                Daftar sebagai Purna
+              </button>
+
+              <p className="text-[11px] text-bento-muted text-center leading-relaxed pt-1 px-1">
+                Pendaftaran Purna perlu konfirmasi admin sebelum bisa login.
+              </p>
+            </div>
           </div>
 
-          {(loginError || authError) && (
-            <Alert
-              variant="error"
-              title="Gagal masuk"
-              message={loginError || authError || undefined}
-              tips={['Pastikan akun Google Anda sudah terdaftar.', 'Purna baru harus menunggu konfirmasi admin.']}
-            />
-          )}
-
-          <button
-            id="btn-scout-google-login"
-            type="button"
-            onClick={onLogin}
-            className="w-full scout-btn-primary py-3.5 text-sm"
-          >
-            <svg className="w-4 h-4 fill-current shrink-0" viewBox="0 0 24 24" aria-hidden>
-              <path d="M12.24 10.285V13.4h6.887c-.275 1.565-1.88 4.604-6.887 4.604-4.33 0-7.859-3.578-7.859-8s3.529-8 7.859-8c2.46 0 4.105 1.025 5.047 1.926l2.427-2.334C17.955 2.192 15.34 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.478 0 10.793-4.537 10.793-10.984 0-.743-.08-1.309-.176-1.863H12.24z" />
-            </svg>
-            Masuk dengan Google
-          </button>
-
-          <div className="relative flex items-center gap-3 py-1">
-            <div className="flex-1 h-px bg-bento-border" />
-            <span className="text-[10px] font-semibold uppercase tracking-wider text-bento-muted">atau</span>
-            <div className="flex-1 h-px bg-bento-border" />
-          </div>
-
-          <button
-            id="btn-purna-register"
-            type="button"
-            onClick={onPurnaRegister}
-            className="w-full scout-btn-secondary py-3.5 text-sm"
-          >
-            <Award className="w-4 h-4" />
-            Daftar sebagai Purna
-          </button>
-
-          <p className="text-[11px] text-bento-muted text-center leading-relaxed pt-1">
-            Belum punya akun Purna? Isi formulir pendaftaran — admin akan konfirmasi sebelum Anda bisa login.
+          <p className="text-center text-[10px] sm:text-[11px] text-bento-muted mt-5 pb-1">
+            ForestBest Scout · v1.3.0
           </p>
         </div>
-
-        <p className="text-center text-[11px] text-bento-muted mt-6">
-          ForestBest Scout · v1.3.0
-        </p>
-      </div>
+      </main>
     </div>
   );
 }

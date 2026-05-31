@@ -117,30 +117,35 @@ export function PurnaRegistrationLanding({ onBack }: PurnaRegistrationLandingPro
   }
 
   return (
-    <div className="min-h-screen bg-bento-bg pb-[max(2rem,env(safe-area-inset-bottom))]">
-      <div className="bg-gradient-to-b from-bento-highlight/80 to-bento-bg px-4 pt-6 pb-8 sm:pt-10">
-        <div className="scout-page max-w-lg mx-auto">
-          <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 text-sm font-semibold text-bento-muted mb-5">
+    <div className="scout-welcome-shell">
+      <header className="scout-welcome-hero pb-8">
+        <div className="scout-welcome-hero-bg" aria-hidden />
+        <div className="relative max-w-lg mx-auto text-left">
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-bento-muted mb-4 -ml-0.5"
+          >
             <ArrowLeft className="w-4 h-4" />
             Kembali
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
+            <div className="w-12 h-12 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0 border border-white/60">
               <Award className="w-6 h-6 text-bento-dark" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-bento-muted">ForestBest Scout</p>
               <h1 className="text-xl sm:text-2xl font-bold text-bento-text leading-tight">Registrasi Purna</h1>
             </div>
           </div>
-          <p className="text-sm text-bento-muted mt-4 leading-relaxed max-w-md">
-            Daftar sebagai alumni Purna ForestBest Scout. Akun aktif setelah Pembina mengkonfirmasi pendaftaran Anda.
+          <p className="text-[13px] sm:text-sm text-bento-muted mt-3 leading-relaxed">
+            Isi biodata alumni. Akun aktif setelah Pembina mengkonfirmasi pendaftaran.
           </p>
         </div>
-      </div>
+      </header>
 
-      <div className="scout-page max-w-lg mx-auto -mt-2 px-4">
-        <form onSubmit={handleSubmit} className="scout-card p-5 sm:p-7 space-y-4">
+      <main className="scout-welcome-body">
+        <form onSubmit={handleSubmit} className="max-w-lg mx-auto w-full space-y-3.5 sm:space-y-4">
           {errorMsg && <Alert variant="error" title="Gagal mendaftar" message={errorMsg} />}
 
           <Alert
@@ -226,7 +231,7 @@ export function PurnaRegistrationLanding({ onBack }: PurnaRegistrationLandingPro
             ))}
           </div>
 
-          <button type="submit" disabled={submitting} className="w-full scout-btn-primary py-3.5 text-sm mt-2">
+          <button type="submit" disabled={submitting} className="w-full scout-btn-primary min-h-12 text-sm mt-2">
             {submitting ? (
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             ) : (
@@ -237,7 +242,7 @@ export function PurnaRegistrationLanding({ onBack }: PurnaRegistrationLandingPro
             )}
           </button>
         </form>
-      </div>
+      </main>
     </div>
   );
 }
