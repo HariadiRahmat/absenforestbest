@@ -260,6 +260,7 @@ export function AdminKelolaPage({
       <PurnaApplicationsPanel
         applications={purnaApplications}
         users={users}
+        preRegistered={preRegistered}
         loading={loadingPurna}
       />
 

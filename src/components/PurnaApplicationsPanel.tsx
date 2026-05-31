@@ -30,19 +30,21 @@ import {
   getActivationErrorMessage,
 } from '../lib/registrationActivation';
 import { normalizeMemberRegistration } from '../lib/purnaRegistration';
-import { MemberRegistration, PurnaApprovalStatus, UserProfile, UserRole } from '../types';
+import { MemberRegistration, PurnaApprovalStatus, PreRegisteredMember, UserProfile, UserRole } from '../types';
 import { Alert } from './ui/Alert';
 
 interface PurnaApplicationsPanelProps {
   applications: MemberRegistration[];
   users: UserProfile[];
+  preRegistered: PreRegisteredMember[];
   loading: boolean;
 }
 
-export function PurnaApplicationsPanel({ applications, users, loading }: PurnaApplicationsPanelProps) {
+export function PurnaApplicationsPanel({ applications, users, preRegistered, loading }: PurnaApplicationsPanelProps) {
   const [processingEmail, setProcessingEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [justPreparedEmails, setJustPreparedEmails] = useState<string[]>([]);
   const [roleByEmail, setRoleByEmail] = useState<Record<string, UserRole>>({});
   const [kelasByEmail, setKelasByEmail] = useState<Record<string, string>>({});
   const [reguByEmail, setReguByEmail] = useState<Record<string, string>>({});
@@ -145,6 +147,7 @@ export function PurnaApplicationsPanel({ applications, users, loading }: PurnaAp
 
       const freshApp = normalizeMemberRegistration(emailKey, regSnap.data() as Record<string, unknown>);
       const result = await ensurePreRegisteredForApprovedApplication(freshApp);
+      setJustPreparedEmails((prev) => [...prev, emailKey]);
       setSuccess(formatActivationReadyMessage(emailKey, result));
     } catch (err) {
       console.error(err);
@@ -156,7 +159,12 @@ export function PurnaApplicationsPanel({ applications, users, loading }: PurnaAp
 
   const pending = applications.filter((a) => a.approvalStatus === PurnaApprovalStatus.PENDING);
   const rejected = applications.filter((a) => a.approvalStatus === PurnaApprovalStatus.REJECTED);
-  const approvedAwaiting = listApprovedAwaitingActivation(applications, users);
+  const approvedAwaiting = listApprovedAwaitingActivation(
+    applications,
+    users,
+    preRegistered,
+    justPreparedEmails
+  );
   const reviewItems = [...pending, ...rejected, ...approvedAwaiting];
 
   return (
@@ -225,7 +233,7 @@ export function PurnaApplicationsPanel({ applications, users, loading }: PurnaAp
                 Disetujui — Menunggu Aktivasi ({approvedAwaiting.length})
               </h4>
               <p className="text-xs text-bento-muted mb-3 leading-relaxed">
-                Akun sudah disetujui tapi belum aktif login. Tekan &quot;Siapkan Aktivasi&quot; jika pengguna stuck di halaman persetujuan.
+                Akun sudah disetujui tapi belum siap login. Tekan &quot;Siapkan Aktivasi&quot; — pengguna akan masuk otomatis.
               </p>
               <div className="space-y-3">
                 {approvedAwaiting.map((app) => (

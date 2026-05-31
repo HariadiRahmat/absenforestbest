@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Clock, XCircle, LogOut, CheckCircle2, RefreshCw, Loader2 } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Clock, XCircle, LogOut, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from './ui/Alert';
 import type { AuthGateStatus } from '../lib/authGate';
@@ -15,7 +15,7 @@ interface PurnaPendingGateProps {
 
 export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
   const { logout, currentUser, retryProfileSetup, authError, clearAuthError } = useAuth();
-  const [retrying, setRetrying] = useState(false);
+  const [activating, setActivating] = useState(false);
   const [retryError, setRetryError] = useState<string | null>(null);
   const isPending = status === 'purna_pending';
   const isApproved = status === 'approved_awaiting_login';
@@ -24,18 +24,32 @@ export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
   const Icon = isApproved ? CheckCircle2 : isPending ? Clock : XCircle;
   const iconColor = isApproved ? 'text-lime-600' : isPending ? 'text-amber-600' : 'text-rose-600';
 
-  const handleRetry = async () => {
-    setRetrying(true);
-    setRetryError(null);
-    clearAuthError();
-    try {
-      await retryProfileSetup();
-    } catch (err) {
-      setRetryError(err instanceof Error ? err.message : 'Gagal memperbarui status.');
-    } finally {
-      setRetrying(false);
-    }
-  };
+  useEffect(() => {
+    if (!isPending && !isApproved) return;
+
+    let cancelled = false;
+
+    const runActivation = async () => {
+      setActivating(true);
+      try {
+        await retryProfileSetup({ silent: true });
+      } catch (err) {
+        if (!cancelled) {
+          setRetryError(err instanceof Error ? err.message : 'Gagal mengaktifkan akun.');
+        }
+      } finally {
+        if (!cancelled) setActivating(false);
+      }
+    };
+
+    void runActivation();
+    const interval = window.setInterval(runActivation, 2500);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [isPending, isApproved, retryProfileSetup]);
 
   const displayError = retryError || authError;
 
@@ -57,9 +71,9 @@ export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
           }
           message={
             isApproved
-              ? 'Tekan "Perbarui Status" setelah Pembina menyiapkan aktivasi akun Anda.'
+              ? 'Akun sedang diaktifkan otomatis. Anda akan masuk ke aplikasi sebentar lagi.'
               : isPending
-                ? 'Tunggu beberapa menit, Pembina akan memvalidasi pendaftaran Anda.'
+                ? 'Tunggu Pembina memvalidasi. Setelah disetujui, Anda akan masuk otomatis.'
                 : `Pendaftaran untuk ${currentUser?.email} tidak disetujui. Hubungi Pembina untuk informasi lebih lanjut.`
           }
           className="text-left"
@@ -78,24 +92,17 @@ export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
           />
         )}
 
-        <div className="space-y-3">
         {(isPending || isApproved) && (
-          <button
-            type="button"
-            onClick={handleRetry}
-            disabled={retrying}
-            className="w-full scout-btn-google py-3.5 text-sm"
-          >
-            {retrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            Perbarui Status
-          </button>
+          <div className="flex items-center justify-center gap-2 text-sm text-bento-muted py-1">
+            <Loader2 className={`w-4 h-4 ${activating ? 'animate-spin' : ''}`} />
+            {isApproved ? 'Mengaktifkan akun...' : 'Menunggu validasi Pembina...'}
+          </div>
         )}
 
         <button type="button" onClick={logout} className="w-full scout-btn-secondary py-3.5 text-sm">
           <LogOut className="w-4 h-4" />
           Keluar
         </button>
-        </div>
       </div>
     </div>
   );

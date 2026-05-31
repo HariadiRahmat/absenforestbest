@@ -3,7 +3,7 @@ import { db } from './firebase';
 import { buildPreRegisteredFromApplication, defaultKelasReguForRole } from './memberApproval';
 import { normalizeMemberRegistration } from './purnaRegistration';
 import { stripUndefined } from './firestoreUtils';
-import { MemberRegistration, PurnaApprovalStatus, UserProfile, UserRole } from '../types';
+import { MemberRegistration, PurnaApprovalStatus, PreRegisteredMember, UserProfile, UserRole } from '../types';
 
 export type PreRegisterRepairResult = 'created' | 'updated';
 
@@ -64,25 +64,32 @@ export async function ensurePreRegisteredForApprovedEmail(email: string): Promis
   return ensurePreRegisteredForApprovedApplication(app);
 }
 
-/** Disetujui admin tapi belum punya akun login (users). */
+/** Disetujui admin, belum login, dan pre_register belum disiapkan Pembina. */
 export function listApprovedAwaitingActivation(
   applications: MemberRegistration[],
-  users: UserProfile[]
+  users: UserProfile[],
+  preRegistered: PreRegisteredMember[] = [],
+  hideEmails: string[] = []
 ): MemberRegistration[] {
   const loggedInEmails = new Set(users.map((u) => u.email.toLowerCase()));
+  const preparedEmails = new Set([
+    ...preRegistered.map((p) => p.email.toLowerCase()),
+    ...hideEmails.map((email) => email.toLowerCase()),
+  ]);
 
   return applications
     .filter(
       (app) =>
         app.approvalStatus === PurnaApprovalStatus.APPROVED
         && !loggedInEmails.has(app.email.toLowerCase())
+        && !preparedEmails.has(app.email.toLowerCase())
     )
     .sort((a, b) => (b.reviewedAt?.seconds ?? b.submittedAt?.seconds ?? 0) - (a.reviewedAt?.seconds ?? a.submittedAt?.seconds ?? 0));
 }
 
 export function formatActivationReadyMessage(email: string, result: PreRegisterRepairResult): string {
   const action = result === 'created' ? 'disiapkan' : 'diperbarui';
-  return `Pre-register ${action} untuk ${email}. Minta pengguna tekan "Perbarui Status" di halaman login.`;
+  return `Aktivasi ${action} untuk ${email}. Pengguna yang sedang menunggu akan masuk otomatis.`;
 }
 
 export function getActivationErrorMessage(err: unknown): string {

@@ -34,7 +34,7 @@ interface AuthContextType {
   clearAuthError: () => void;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  retryProfileSetup: () => Promise<void>;
+  retryProfileSetup: (options?: { silent?: boolean }) => Promise<void>;
   registerProfile: (nama: string, kelas: string, regu: string) => Promise<void>;
   updateProfileDetails: (nama: string, kelas: string, regu: string) => Promise<void>;
   updatePurnaProfile: (fields: PurnaProfileFormData) => Promise<void>;
@@ -210,11 +210,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (preSnap) => {
         if (!preSnap.exists() || currentUserRef.current?.uid !== user.uid) return;
 
-        const migrated = await safeMigrate(user, userRef);
-        if (migrated) {
-          setAuthGate(null);
-          clearPreRegisteredListener();
-        }
+        await activateApprovedRegistration(user, userRef);
       },
       (error) => {
         console.error('Pre-register snapshot error:', error);
@@ -369,11 +365,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const retryProfileSetup = async () => {
+  const retryProfileSetup = async (options?: { silent?: boolean }) => {
     const user = currentUserRef.current;
     if (!user) return;
 
-    setLoading(true);
+    if (!options?.silent) setLoading(true);
     try {
       const userRef = doc(db, 'users', user.uid);
       const existing = await getDoc(userRef);
@@ -385,8 +381,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       console.error('Retry profile setup failed:', err);
       setAuthError(err instanceof Error ? err.message : 'Gagal mengaktifkan akun.');
+      throw err;
     } finally {
-      setLoading(false);
+      if (!options?.silent) setLoading(false);
     }
   };
 
