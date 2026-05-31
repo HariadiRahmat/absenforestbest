@@ -84,6 +84,27 @@ export const DEFAULT_PURNA_LINKS: PurnaLinksConfig = {
   links: [],
 };
 
+/** Kegiatan mendatang — disimpan di settings/upcoming_events */
+export interface UpcomingEvent {
+  id: string;
+  title: string;
+  /** YYYY-MM-DD */
+  tanggal: string;
+  description?: string;
+  lokasi?: string;
+  waktu?: string;
+  order: number;
+}
+
+export interface UpcomingEventsConfig {
+  events: UpcomingEvent[];
+  updatedAt?: any;
+}
+
+export const DEFAULT_UPCOMING_EVENTS: UpcomingEventsConfig = {
+  events: [],
+};
+
 /** Pendaftaran akun baru via halaman Register — menunggu konfirmasi admin */
 export interface MemberRegistration {
   email: string;

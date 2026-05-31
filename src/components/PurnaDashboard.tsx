@@ -30,6 +30,7 @@ import {
 import { parseFormAlertMessage } from '../lib/friendlyErrors';
 import { TabNav } from './ui/TabNav';
 import { Alert } from './ui/Alert';
+import { UpcomingEventsPanel } from './UpcomingEventsPanel';
 
 export function PurnaDashboard() {
   const { userProfile, logout, updatePurnaProfile } = useAuth();
@@ -112,6 +113,8 @@ export function PurnaDashboard() {
             </button>
           </div>
         </header>
+
+        <UpcomingEventsPanel />
 
         <TabNav
           tabs={[

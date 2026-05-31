@@ -16,6 +16,7 @@ import { parseAttendanceError } from '../lib/attendanceErrors';
 import type { FriendlyError } from './ui/Alert';
 import { Alert } from './ui/Alert';
 import { TabNav } from './ui/TabNav';
+import { UpcomingEventsPanel } from './UpcomingEventsPanel';
 import { getTodayStr } from '../lib/dateUtils';
 import {
   Shield,
@@ -205,6 +206,10 @@ export function AnggotaDashboard() {
               <p className="text-xs sm:text-sm font-bold text-bento-text mt-0.5 truncate">{todayStr}</p>
             </div>
           </div>
+        </div>
+
+        <div className="mt-3 sm:mt-5">
+          <UpcomingEventsPanel />
         </div>
 
         <div className="mt-5 sm:mt-6">
