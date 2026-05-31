@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { db, logFirestoreError } from '../lib/firebase';
 import { OperationType, PurnaDocumentationLink } from '../types';
-import { emptyPurnaLinksConfig, newPurnaLink, normalizePurnaLinks } from '../lib/purnaLinks';
+import { emptyPurnaLinksConfig, newPurnaLink, resolvePurnaLinks } from '../lib/purnaLinks';
 import { Alert } from './ui/Alert';
 
 export function PurnaLinksSettings() {
@@ -27,13 +27,21 @@ export function PurnaLinksSettings() {
 
   useEffect(() => {
     const ref = doc(db, 'settings', 'purna_links');
+    let seeding = false;
     const unsub = onSnapshot(
       ref,
-      (snap) => {
+      async (snap) => {
         if (snap.exists()) {
-          setLinks(normalizePurnaLinks(snap.data() as Record<string, unknown>).links);
-        } else {
-          setLinks(emptyPurnaLinksConfig().links);
+          setLinks(resolvePurnaLinks(snap.data() as Record<string, unknown>).links);
+        } else if (!seeding) {
+          const defaults = emptyPurnaLinksConfig().links;
+          setLinks(defaults);
+          seeding = true;
+          try {
+            await setDoc(ref, { links: defaults, updatedAt: serverTimestamp() }, { merge: true });
+          } catch (err) {
+            logFirestoreError(err, OperationType.WRITE, 'settings/purna_links');
+          }
         }
       },
       (err) => {

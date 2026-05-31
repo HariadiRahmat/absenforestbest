@@ -21,7 +21,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { db, logFirestoreError } from '../lib/firebase';
 import { OperationType } from '../types';
-import { normalizePurnaLinks } from '../lib/purnaLinks';
+import { normalizePurnaLinks, resolvePurnaLinks } from '../lib/purnaLinks';
 import {
   AGAMA_OPTIONS,
   STATUS_PERKAWINAN_OPTIONS,
@@ -48,9 +48,9 @@ export function PurnaDashboard() {
       ref,
       (snap) => {
         if (snap.exists()) {
-          setLinks(normalizePurnaLinks(snap.data() as Record<string, unknown>).links);
+          setLinks(resolvePurnaLinks(snap.data() as Record<string, unknown>).links);
         } else {
-          setLinks([]);
+          setLinks(resolvePurnaLinks().links);
         }
         setLoadingLinks(false);
       },
