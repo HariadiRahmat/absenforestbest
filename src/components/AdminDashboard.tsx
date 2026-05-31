@@ -22,6 +22,7 @@ import {
 import { UserProfile, AttendanceRecord, QRCodeConfig, UserRole, UserStatus, AttendanceStatus, OperationType } from '../types';
 import { QRGenerator } from './QRGenerator';
 import { GeofenceSettings } from './GeofenceSettings';
+import { MemberDirectory } from './MemberDirectory';
 import { Alert } from './ui/Alert';
 import { TabNav } from './ui/TabNav';
 import {
@@ -29,10 +30,6 @@ import {
   QrCode,
   CheckCircle,
   HelpCircle,
-  Plus,
-  Edit2,
-  Trash2,
-  Search,
   Check,
   X,
   AlertCircle,
@@ -42,7 +39,8 @@ import {
   ToggleLeft,
   ToggleRight,
   Sparkles,
-  BarChart2
+  BarChart2,
+  Shield,
 } from 'lucide-react';
 
 function formatHeaderDate(short = false) {
@@ -61,12 +59,45 @@ function formatHeaderDate(short = false) {
   });
 }
 
+function filterUsersByRole(
+  users: UserProfile[],
+  role: UserRole,
+  search: string,
+  reguFilter: string,
+  kelasFilter: string,
+  applyClassSquadFilters: boolean
+) {
+  const q = search.toLowerCase();
+  return users.filter((member) => {
+    if (member.role !== role) return false;
+
+    const nama = (member.nama ?? '').toLowerCase();
+    const email = (member.email ?? '').toLowerCase();
+    const kelas = (member.kelas ?? '').toLowerCase();
+    const regu = (member.regu ?? '').toLowerCase();
+
+    const matchesSearch =
+      nama.includes(q) || email.includes(q) || kelas.includes(q) || regu.includes(q);
+
+    if (!applyClassSquadFilters) return matchesSearch;
+
+    const matchesRegu =
+      reguFilter === 'ALL' || (member.regu ?? '').toUpperCase() === reguFilter.toUpperCase();
+    const matchesKelas =
+      kelasFilter === 'ALL' || (member.kelas ?? '').toUpperCase() === kelasFilter.toUpperCase();
+
+    return matchesSearch && matchesRegu && matchesKelas;
+  });
+}
+
 export function AdminDashboard() {
   const { userProfile } = useAuth();
   const todayStr = getTodayStr();
 
   // Navigation states
-  const [adminTab, setAdminTab] = useState<'qr_monitor' | 'crud_anggota' | 'rekap' | 'geofence'>('qr_monitor');
+  const [adminTab, setAdminTab] = useState<
+    'qr_monitor' | 'crud_anggota' | 'crud_pembina' | 'rekap' | 'geofence'
+  >('qr_monitor');
 
   // Core Firestore states
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -93,9 +124,11 @@ export function AdminDashboard() {
   const [formError, setFormError] = useState<string | null>(null);
 
   // Search/Filters states
-  const [memberSearch, setMemberSearch] = useState('');
+  const [memberSearchAnggota, setMemberSearchAnggota] = useState('');
+  const [memberSearchPembina, setMemberSearchPembina] = useState('');
   const [memberFilterRegu, setMemberFilterRegu] = useState('ALL');
   const [memberFilterKelas, setMemberFilterKelas] = useState('ALL');
+  const [formContextRole, setFormContextRole] = useState<UserRole>(UserRole.ANGGOTA);
 
   // Setup listeners on mounts
   useEffect(() => {
@@ -217,14 +250,15 @@ export function AdminDashboard() {
   };
 
   // CRUD ops
-  const handleOpenCreateModal = () => {
+  const handleOpenCreateModal = (role: UserRole) => {
     setIsEditMode(false);
     setSelectedMemberId(null);
     setFormName('');
     setFormEmail('');
-    setFormClass('');
-    setFormSquad('');
-    setFormRole(UserRole.ANGGOTA);
+    setFormClass(role === UserRole.ADMIN ? 'Pembina' : '');
+    setFormSquad(role === UserRole.ADMIN ? 'Staf' : '');
+    setFormRole(role);
+    setFormContextRole(role);
     setFormStatus(UserStatus.AKTIF);
     setFormError(null);
     setShowMemberModal(true);
@@ -238,6 +272,7 @@ export function AdminDashboard() {
     setFormClass(member.kelas);
     setFormSquad(member.regu);
     setFormRole(member.role);
+    setFormContextRole(member.role);
     setFormStatus(member.status);
     setFormError(null);
     setShowMemberModal(true);
@@ -311,33 +346,33 @@ export function AdminDashboard() {
   };
 
   // Calculations for dashboard counters
-  const totalScoutsCount = users.filter(u => u.role === UserRole.ANGGOTA).length;
+  const totalPembinaCount = users.filter((u) => u.role === UserRole.ADMIN).length;
+  const totalScoutsCount = users.filter((u) => u.role === UserRole.ANGGOTA).length;
   const loggedTodayCount = attendanceToday.length;
   const missingTodayCount = Math.max(0, totalScoutsCount - loggedTodayCount);
   const attendanceRate = totalScoutsCount > 0 ? Math.round((loggedTodayCount / totalScoutsCount) * 100) : 0;
 
-  // Filter lists
-  const filteredMembers = users.filter((member) => {
-    const search = memberSearch.toLowerCase();
-    const nama = (member.nama ?? '').toLowerCase();
-    const email = (member.email ?? '').toLowerCase();
-    const kelas = (member.kelas ?? '').toLowerCase();
-    const regu = (member.regu ?? '').toLowerCase();
+  const filteredAnggota = filterUsersByRole(
+    users,
+    UserRole.ANGGOTA,
+    memberSearchAnggota,
+    memberFilterRegu,
+    memberFilterKelas,
+    true
+  );
 
-    const matchesSearch =
-      nama.includes(search) ||
-      email.includes(search) ||
-      kelas.includes(search) ||
-      regu.includes(search);
+  const filteredPembina = filterUsersByRole(
+    users,
+    UserRole.ADMIN,
+    memberSearchPembina,
+    'ALL',
+    'ALL',
+    false
+  );
 
-    const matchesRegu = memberFilterRegu === 'ALL' || (member.regu ?? '').toUpperCase() === memberFilterRegu.toUpperCase();
-    const matchesKelas = memberFilterKelas === 'ALL' || (member.kelas ?? '').toUpperCase() === memberFilterKelas.toUpperCase();
-
-    return matchesSearch && matchesRegu && matchesKelas;
-  });
-
-  const uniqueRegus = Array.from(new Set(users.map((u) => (u.regu ?? '').toUpperCase()))).filter(Boolean);
-  const uniqueClasses = Array.from(new Set(users.map((u) => (u.kelas ?? '').toUpperCase()))).filter(Boolean);
+  const anggotaUsers = users.filter((u) => u.role === UserRole.ANGGOTA);
+  const uniqueRegus = Array.from(new Set(anggotaUsers.map((u) => (u.regu ?? '').toUpperCase()))).filter(Boolean);
+  const uniqueClasses = Array.from(new Set(anggotaUsers.map((u) => (u.kelas ?? '').toUpperCase()))).filter(Boolean);
 
   // Grouped monthly chart coordinates mock stats
   const checkinsByDate: { [date: string]: number } = {};
@@ -415,16 +450,16 @@ export function AdminDashboard() {
             <div className="w-8 h-8 rounded-xl bg-bento-highlight flex items-center justify-center mb-2 sm:mb-3">
               <Users className="w-4 h-4 text-bento-primary" />
             </div>
-            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Total Anggota</p>
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Anggota</p>
             <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">{totalScoutsCount}</h2>
           </div>
 
           <div className="scout-card p-4 sm:p-5 min-h-[96px] sm:min-h-[110px]">
-            <div className="w-8 h-8 rounded-xl bg-bento-highlight flex items-center justify-center mb-2 sm:mb-3">
-              <BarChart2 className="w-4 h-4 text-bento-primary" />
+            <div className="w-8 h-8 rounded-xl bg-bento-accent flex items-center justify-center mb-2 sm:mb-3">
+              <Shield className="w-4 h-4 text-bento-dark" />
             </div>
-            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Rasio</p>
-            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">{attendanceRate}%</h2>
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Pembina</p>
+            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">{totalPembinaCount}</h2>
           </div>
         </div>
 
@@ -433,12 +468,13 @@ export function AdminDashboard() {
             tabs={[
               { id: 'admin-tab-qr', key: 'qr_monitor', label: 'QR & Live', icon: QrCode },
               { id: 'admin-tab-crud', key: 'crud_anggota', label: 'Anggota', icon: Users },
+              { id: 'admin-tab-pembina', key: 'crud_pembina', label: 'Pembina', icon: Shield },
               { id: 'admin-tab-rekap', key: 'rekap', label: 'Rekap', icon: FileSpreadsheet },
               { id: 'admin-tab-geofence', key: 'geofence', label: 'GPS', icon: MapPin },
             ]}
             active={adminTab}
             onChange={setAdminTab}
-            columns={4}
+            columns={5}
           />
 
         {/* Tab contents panel layout */}
@@ -541,202 +577,44 @@ export function AdminDashboard() {
             </div>
           )}
 
-          {/* TAB 2: ACTIVE SCOUTS DIRECTORY (CRUD) */}
           {adminTab === 'crud_anggota' && (
-            <div className="scout-card p-4 sm:p-6">
-              
-              {/* Toolbar & filters row */}
-              <div className="flex flex-col gap-3 mb-6">
-                <div className="relative w-full">
-                  <span className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none">
-                    <Search className="h-4 w-4 text-bento-muted" />
-                  </span>
-                  <input
-                    id="member-search-bar"
-                    type="text"
-                    className="w-full h-11 pl-10 pr-4 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm text-bento-text placeholder-bento-muted bg-bento-soft"
-                    placeholder="Cari nama, email, kelas, regu..."
-                    value={memberSearch}
-                    onChange={(e) => setMemberSearch(e.target.value)}
-                  />
-                </div>
+            <MemberDirectory
+              role={UserRole.ANGGOTA}
+              members={filteredAnggota}
+              loading={loadingMembers}
+              search={memberSearchAnggota}
+              onSearchChange={setMemberSearchAnggota}
+              filterRegu={memberFilterRegu}
+              onFilterReguChange={setMemberFilterRegu}
+              filterKelas={memberFilterKelas}
+              onFilterKelasChange={setMemberFilterKelas}
+              uniqueRegus={uniqueRegus}
+              uniqueClasses={uniqueClasses}
+              onAdd={() => handleOpenCreateModal(UserRole.ANGGOTA)}
+              onEdit={handleOpenEditModal}
+              onDelete={handleDeleteMember}
+              onToggleStatus={handleToggleStatus}
+            />
+          )}
 
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <select
-                    id="filter-member-regu"
-                    className="h-11 w-full sm:flex-1 sm:min-w-0 px-3 border border-bento-border rounded-2xl text-sm font-medium bg-white text-bento-text appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
-                    value={memberFilterRegu}
-                    onChange={(e) => setMemberFilterRegu(e.target.value)}
-                  >
-                    <option value="ALL">Semua Regu</option>
-                    {uniqueRegus.map(r => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    id="filter-member-kelas"
-                    className="h-11 w-full sm:flex-1 sm:min-w-0 px-3 border border-bento-border rounded-2xl text-sm font-medium bg-white text-bento-text appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
-                    value={memberFilterKelas}
-                    onChange={(e) => setMemberFilterKelas(e.target.value)}
-                  >
-                    <option value="ALL">Semua Kelas</option>
-                    {uniqueClasses.map(c => (
-                      <option key={c} value={c}>{c}</option>
-                    ))}
-                  </select>
-
-                  <button
-                    id="btn-add-scout-member"
-                    type="button"
-                    onClick={handleOpenCreateModal}
-                    className="h-11 w-full sm:w-auto sm:shrink-0 scout-btn-primary text-sm px-5"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Tambah Anggota
-                  </button>
-                </div>
-              </div>
-
-              {/* Table list of members */}
-              {loadingMembers ? (
-                <div className="text-center py-12 text-slate-500 font-sans text-xs">
-                  <div className="w-6 h-6 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-                  Memuat data scout...
-                </div>
-              ) : filteredMembers.length === 0 ? (
-                <div className="text-center py-12 text-slate-400 text-xs">
-                  <Users className="w-12 h-12 stroke-1 mx-auto mb-2 text-slate-300" />
-                  Tidak ditemukan data scout yang cocok dengan pencarian / filter Anda.
-                </div>
-              ) : (
-                <>
-                  {/* Mobile card list */}
-                  <div className="md:hidden space-y-3">
-                    {filteredMembers.map((member) => (
-                      <div key={member.userId} className="border border-bento-border rounded-2xl p-4 bg-bento-soft/30">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="font-bold text-bento-text truncate">{member.nama}</p>
-                            <p className="text-[11px] text-bento-muted font-mono truncate mt-0.5">{member.email}</p>
-                          </div>
-                          <button
-                            id={`toggle-status-mobile-${member.userId}`}
-                            onClick={() => handleToggleStatus(member)}
-                            className="shrink-0 text-[10px] font-semibold"
-                          >
-                            {member.status === UserStatus.AKTIF ? (
-                              <span className="text-lime-800 bg-lime-50 px-2 py-1 rounded-full border border-lime-200">Aktif</span>
-                            ) : (
-                              <span className="text-bento-muted bg-white px-2 py-1 rounded-full border border-bento-border">Nonaktif</span>
-                            )}
-                          </button>
-                        </div>
-                        <div className="flex flex-wrap gap-2 mt-3 text-xs text-bento-muted">
-                          <span>Kelas {member.kelas}</span>
-                          <span>·</span>
-                          <span>Regu {member.regu}</span>
-                          <span>·</span>
-                          <span className="font-semibold">{member.role === UserRole.ADMIN ? 'Pembina' : 'Anggota'}</span>
-                        </div>
-                        <div className="flex gap-2 mt-3 pt-3 border-t border-bento-border">
-                          <button
-                            id={`edit-member-mobile-${member.userId}`}
-                            onClick={() => handleOpenEditModal(member)}
-                            className="flex-1 scout-btn-secondary text-xs py-2"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            Ubah
-                          </button>
-                          <button
-                            id={`delete-member-mobile-${member.userId}`}
-                            onClick={() => handleDeleteMember(member.userId)}
-                            className="flex-1 scout-btn-secondary text-xs py-2 text-rose-700 border-rose-100"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                            Hapus
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Desktop table */}
-                  <div className="hidden md:block overflow-x-auto -mx-2 sm:mx-0">
-                  <table className="w-full text-left border-collapse min-w-[640px]">
-                    <thead>
-                      <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                        <th className="p-4 rounded-l-2xl">Nama & Email</th>
-                        <th className="p-4">Kelas / Regu</th>
-                        <th className="p-4">Jenis Peran</th>
-                        <th className="p-4 text-center">Status</th>
-                        <th className="p-4 text-right rounded-r-2xl">Aksi</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 text-xs text-slate-700">
-                      {filteredMembers.map((member) => (
-                        <tr key={member.userId} className="hover:bg-slate-50/50 transition duration-150">
-                          <td className="p-4">
-                            <div className="font-extrabold text-slate-800">{member.nama}</div>
-                            <div className="font-mono text-[10px] text-slate-400 mt-0.5">{member.email}</div>
-                          </td>
-                          <td className="p-4">
-                            <div className="font-semibold text-slate-700">Kelas {member.kelas}</div>
-                            <div className="text-slate-500 mt-0.5">Regu {member.regu}</div>
-                          </td>
-                          <td className="p-4">
-                            <span className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider uppercase ${
-                              member.role === UserRole.ADMIN
-                                ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                                : 'bg-slate-100 text-slate-600 border border-slate-250'
-                            }`}>
-                              {member.role === UserRole.ADMIN ? 'Pembina' : 'Anggota'}
-                            </span>
-                          </td>
-                          <td className="p-4 text-center">
-                            <button
-                              id={`toggle-status-${member.userId}`}
-                              onClick={() => handleToggleStatus(member)}
-                              className="font-sans font-bold cursor-pointer inline-flex items-center gap-1 active:scale-95 text-[10px]"
-                              title="Klik untuk mengubah status"
-                            >
-                              {member.status === UserStatus.AKTIF ? (
-                                <span className="flex items-center gap-1 text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-                                  Aktif
-                                </span>
-                              ) : (
-                                <span className="flex items-center gap-1 text-slate-400 bg-slate-50 px-2.5 py-1 rounded-full border border-slate-200">
-                                  Nonaktif
-                                </span>
-                              )}
-                            </button>
-                          </td>
-                          <td className="p-4 text-right space-x-2">
-                            <button
-                              id={`edit-member-${member.userId}`}
-                              onClick={() => handleOpenEditModal(member)}
-                              className="p-1.5 hover:bg-emerald-50 text-emerald-800 transition rounded-lg bg-slate-50 border border-slate-200/55 cursor-pointer"
-                              title="Ubah Anggota"
-                            >
-                              <Edit2 className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              id={`delete-member-${member.userId}`}
-                              onClick={() => handleDeleteMember(member.userId)}
-                              className="p-1.5 hover:bg-red-50 text-red-700 transition rounded-lg bg-slate-50 border border-slate-200/55 cursor-pointer"
-                              title="Hapus Anggota"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  </div>
-                </>
-              )}
-            </div>
+          {adminTab === 'crud_pembina' && (
+            <MemberDirectory
+              role={UserRole.ADMIN}
+              members={filteredPembina}
+              loading={loadingMembers}
+              search={memberSearchPembina}
+              onSearchChange={setMemberSearchPembina}
+              filterRegu="ALL"
+              onFilterReguChange={() => {}}
+              filterKelas="ALL"
+              onFilterKelasChange={() => {}}
+              uniqueRegus={[]}
+              uniqueClasses={[]}
+              onAdd={() => handleOpenCreateModal(UserRole.ADMIN)}
+              onEdit={handleOpenEditModal}
+              onDelete={handleDeleteMember}
+              onToggleStatus={handleToggleStatus}
+            />
           )}
 
           {/* TAB 3: STATS & HISTORICAL LOGS (REKAP) */}
@@ -843,8 +721,14 @@ export function AdminDashboard() {
         <div id="scout-member-modal-overlay" className="fixed inset-0 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
           <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-xl border border-bento-border text-left max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
-              <h3 className="font-sans text-base font-extrabold text-slate-800">
-                {isEditMode ? 'Ubah Data Anggota Pramuka' : 'Pre-Register Anggota Baru'}
+              <h3 className="font-sans text-base font-extrabold text-bento-text">
+                {isEditMode
+                  ? formContextRole === UserRole.ADMIN
+                    ? 'Ubah Data Pembina'
+                    : 'Ubah Data Anggota'
+                  : formContextRole === UserRole.ADMIN
+                    ? 'Pre-Register Pembina Baru'
+                    : 'Pre-Register Anggota Baru'}
               </h3>
               <button
                 id="btn-close-member-modal"
@@ -863,8 +747,10 @@ export function AdminDashboard() {
               )}
 
               {!isEditMode && (
-                <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-100 rounded-xl p-3">
-                  Profil akan otomatis terhubung saat anggota login dengan email Google yang sama.
+                <p className="text-[11px] text-bento-muted bg-bento-soft border border-bento-border rounded-xl p-3">
+                  {formContextRole === UserRole.ADMIN
+                    ? 'Pembina akan otomatis terhubung saat login dengan email Google yang sama.'
+                    : 'Anggota akan otomatis terhubung saat login dengan email Google yang sama.'}
                 </p>
               )}
 
@@ -896,29 +782,31 @@ export function AdminDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* School Class */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Kelas</label>
+                  <label className="text-[10px] font-bold text-bento-muted uppercase tracking-wider">
+                    {formContextRole === UserRole.ADMIN ? 'Unit / Jabatan' : 'Kelas'}
+                  </label>
                   <input
                     id="form-scout-class"
                     type="text"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs font-sans focus:outline-none focus:ring-2 focus:ring-emerald-700"
-                    placeholder="Contoh: X.4 / XII IPS"
+                    className="w-full px-4 py-3 border border-bento-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
+                    placeholder={formContextRole === UserRole.ADMIN ? 'Contoh: Pembina' : 'Contoh: X.4 / XII IPS'}
                     value={formClass}
                     onChange={(e) => setFormClass(e.target.value)}
                     required
                   />
                 </div>
 
-                {/* Squad/Regu */}
                 <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Regu Pramuka</label>
+                  <label className="text-[10px] font-bold text-bento-muted uppercase tracking-wider">
+                    {formContextRole === UserRole.ADMIN ? 'Bagian' : 'Regu Pramuka'}
+                  </label>
                   <input
                     id="form-scout-squad"
                     type="text"
-                    className="w-full px-4 py-3 border border-slate-200 rounded-xl text-xs font-sans focus:outline-none focus:ring-2 focus:ring-emerald-700"
-                    placeholder="Contoh: Garuda / Orchid"
+                    className="w-full px-4 py-3 border border-bento-border rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-bento-primary/30"
+                    placeholder={formContextRole === UserRole.ADMIN ? 'Contoh: Staf' : 'Contoh: Garuda / Orchid'}
                     value={formSquad}
                     onChange={(e) => setFormSquad(e.target.value)}
                     required
@@ -926,35 +814,20 @@ export function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* System Role */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Hak Akses</label>
-                  <select
-                    id="form-scout-role"
-                    className="w-full px-3 py-3 border border-slate-200 rounded-xl text-xs font-bold font-sans bg-slate-50 select-none text-slate-700"
-                    value={formRole}
-                    onChange={(e) => setFormRole(e.target.value as UserRole)}
-                  >
-                    <option value={UserRole.ANGGOTA}>Anggota Pramuka</option>
-                    <option value={UserRole.ADMIN}>Pembina (Admin)</option>
-                  </select>
-                </div>
-
-                {/* Membership Status */}
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Status Anggota</label>
-                  <select
-                    id="form-scout-status"
-                    className="w-full px-3 py-3 border border-slate-200 rounded-xl text-xs font-bold font-sans bg-slate-50 select-none text-slate-700"
-                    value={formStatus}
-                    onChange={(e) => setFormStatus(e.target.value as UserStatus)}
-                  >
-                    <option value={UserStatus.AKTIF}>Aktif</option>
-                    <option value={UserStatus.NON_AKTIF}>Nonaktif</option>
-                  </select>
-                </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-bento-muted uppercase tracking-wider">Status</label>
+                <select
+                  id="form-scout-status"
+                  className="w-full px-3 py-3 border border-bento-border rounded-xl text-xs font-semibold bg-bento-soft text-bento-text"
+                  value={formStatus}
+                  onChange={(e) => setFormStatus(e.target.value as UserStatus)}
+                >
+                  <option value={UserStatus.AKTIF}>Aktif</option>
+                  <option value={UserStatus.NON_AKTIF}>Nonaktif</option>
+                </select>
               </div>
+
+              <input type="hidden" value={formRole} readOnly />
 
               {/* Action row */}
               <div className="flex gap-2 pt-4">

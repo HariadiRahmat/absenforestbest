@@ -17,15 +17,20 @@ interface TabNavProps<T extends string> {
   tabs: TabItem<T>[];
   active: T;
   onChange: (key: T) => void;
-  columns?: 2 | 3 | 4;
+  columns?: 2 | 3 | 4 | 5;
 }
 
 export function TabNav<T extends string>({ tabs, active, onChange, columns = 3 }: TabNavProps<T>) {
-  const gridCols =
-    columns === 4 ? 'grid-cols-2 sm:grid-cols-4' : columns === 2 ? 'grid-cols-2' : 'grid-cols-3';
+  const gridCols: Record<number, string> = {
+    2: 'grid-cols-2',
+    3: 'grid-cols-3',
+    4: 'grid-cols-2 sm:grid-cols-4',
+    5: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5',
+  };
+  const gridClass = gridCols[columns] ?? 'grid-cols-3';
 
   return (
-    <div className={`scout-card p-1.5 grid ${gridCols} sm:flex sm:flex-wrap gap-1 mb-5 sm:mb-6`}>
+    <div className={`scout-card p-1.5 grid ${gridClass} sm:flex sm:flex-wrap gap-1 mb-5 sm:mb-6`}>
       {tabs.map(({ id, key, label, icon: Icon }) => (
         <button
           key={key}
