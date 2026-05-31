@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { Users, Shield, Award, Link2, CalendarDays } from 'lucide-react';
+import { Users, Shield, Award, Link2 } from 'lucide-react';
 import { TabNav } from '../ui/TabNav';
 import { MemberDirectory } from '../MemberDirectory';
 import { PurnaApplicationsPanel } from '../PurnaApplicationsPanel';
 import { PurnaLinksSettings } from '../PurnaLinksSettings';
-import { UpcomingEventsSettings } from '../UpcomingEventsSettings';
 import { MemberCrudModal } from './MemberCrudModal';
 import { PurnaProfileViewModal } from './PurnaProfileViewModal';
 import { buildMemberDirectoryList, isPreRegisteredUserId } from '../../lib/purnaDirectory';
@@ -16,7 +15,7 @@ import { deleteMemberRecords, syncRegistrationApprovedRole } from '../../lib/mem
 import { isProtectedAdminAccount, PROTECTED_ADMIN_MESSAGE } from '../../lib/protectedAdmin';
 import { OperationType } from '../../types';
 
-export type AdminKelolaTab = 'crud_anggota' | 'crud_pembina' | 'crud_purna' | 'purna_docs' | 'kegiatan';
+export type AdminKelolaTab = 'crud_anggota' | 'crud_pembina' | 'crud_purna' | 'purna_docs';
 
 interface AdminKelolaPageProps {
   tab: AdminKelolaTab;
@@ -254,7 +253,7 @@ export function AdminKelolaPage({
         </p>
         <h1 className="text-lg sm:text-xl font-bold text-bento-text mt-1">Kelola Anggota</h1>
         <p className="text-xs sm:text-sm text-bento-muted mt-1">
-          Anggota, pembina, validasi purna, kegiatan mendatang, dan link dokumentasi.
+          Anggota, pembina, validasi purna, dan link dokumentasi.
         </p>
       </header>
 
@@ -270,12 +269,11 @@ export function AdminKelolaPage({
           { id: 'admin-kelola-anggota', key: 'crud_anggota', label: 'Anggota', icon: Users },
           { id: 'admin-kelola-pembina', key: 'crud_pembina', label: 'Pembina', icon: Shield },
           { id: 'admin-kelola-purna', key: 'crud_purna', label: 'Purna', icon: Award },
-          { id: 'admin-kelola-kegiatan', key: 'kegiatan', label: 'Kegiatan', icon: CalendarDays },
           { id: 'admin-kelola-links', key: 'purna_docs', label: 'Link Purna', icon: Link2 },
         ]}
         active={tab}
         onChange={onTabChange}
-        columns={5}
+        columns={4}
       />
 
       {tab === 'crud_anggota' && (
@@ -348,8 +346,6 @@ export function AdminKelolaPage({
       )}
 
       {tab === 'purna_docs' && <PurnaLinksSettings />}
-
-      {tab === 'kegiatan' && <UpcomingEventsSettings />}
 
       {showMemberModal && (
         <MemberCrudModal

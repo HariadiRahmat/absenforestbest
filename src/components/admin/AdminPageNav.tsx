@@ -1,7 +1,7 @@
 import React from 'react';
-import { LayoutDashboard, QrCode, UsersRound } from 'lucide-react';
+import { LayoutDashboard, QrCode, UsersRound, CalendarDays } from 'lucide-react';
 
-export type AdminPage = 'overview' | 'absensi' | 'kelola';
+export type AdminPage = 'overview' | 'absensi' | 'kelola' | 'kegiatan';
 
 interface AdminPageNavProps {
   active: AdminPage;
@@ -12,12 +12,13 @@ const pages: { key: AdminPage; label: string; icon: typeof LayoutDashboard }[] =
   { key: 'overview', label: 'Beranda', icon: LayoutDashboard },
   { key: 'absensi', label: 'Absensi', icon: QrCode },
   { key: 'kelola', label: 'Kelola Anggota', icon: UsersRound },
+  { key: 'kegiatan', label: 'Kegiatan', icon: CalendarDays },
 ];
 
 export function AdminPageNav({ active, onChange }: AdminPageNavProps) {
   return (
     <nav className="scout-card p-1 mb-4 sm:mb-6">
-      <div className="grid grid-cols-3 gap-1">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1">
         {pages.map(({ key, label, icon: Icon }) => (
           <button
             key={key}

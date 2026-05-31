@@ -11,6 +11,7 @@ import { AdminPageNav, AdminPage } from './admin/AdminPageNav';
 import { AdminOverviewPage } from './admin/AdminOverviewPage';
 import { AdminAbsensiPage, AdminAbsensiTab } from './admin/AdminAbsensiPage';
 import { AdminKelolaPage, AdminKelolaTab } from './admin/AdminKelolaPage';
+import { AdminKegiatanPage } from './admin/AdminKegiatanPage';
 import { countActiveLoggedInAnggota } from '../lib/purnaDirectory';
 
 export function AdminDashboard() {
@@ -110,6 +111,8 @@ export function AdminDashboard() {
             loadingPurna={loadingPurna}
           />
         )}
+
+        {adminPage === 'kegiatan' && <AdminKegiatanPage />}
       </div>
     </div>
   );
