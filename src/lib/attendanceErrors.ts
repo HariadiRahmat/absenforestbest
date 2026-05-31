@@ -69,6 +69,18 @@ export function parseAttendanceError(error: unknown): FriendlyError {
     };
   }
 
+  if (msg.includes('GPS wajib aktif') || msg.includes('m dari')) {
+    return {
+      title: 'Di luar area latihan',
+      message: msg,
+      tips: [
+        'Pastikan izin lokasi/GPS aktif di browser.',
+        'Dekati titik latihan yang ditentukan Pembina.',
+        'Hubungi Pembina jika Anda sudah berada di lokasi yang benar.',
+      ],
+    };
+  }
+
   if (msg.includes('GPS') || msg.includes('Lokasi')) {
     return {
       title: 'Akses lokasi diperlukan',

@@ -105,6 +105,23 @@ service cloud.firestore {
         && (incoming().longitude == null || incoming().longitude is number);
     }
 
+    function geofenceAllowsOptionalLocation() {
+      return !exists(/databases/$(database)/documents/settings/geofence)
+        || get(/databases/$(database)/documents/settings/geofence).data.enabled != true;
+    }
+
+    function geofenceRequiresLocation() {
+      return exists(/databases/$(database)/documents/settings/geofence)
+        && get(/databases/$(database)/documents/settings/geofence).data.enabled == true
+        && incoming().latitude is number
+        && incoming().longitude is number;
+    }
+
+    function hasValidLocation() {
+      return hasValidOptionalLocation()
+        && (geofenceAllowsOptionalLocation() || geofenceRequiresLocation());
+    }
+
     function validActiveCheckin(date, token) {
       return exists(/databases/$(database)/documents/settings/active_checkin)
         && get(/databases/$(database)/documents/settings/active_checkin).data.date == date
@@ -128,7 +145,7 @@ service cloud.firestore {
           && incoming().tanggal is string && incoming().tanggal.size() == 10
           && incoming().qrToken is string && incoming().qrToken.size() <= 100
           && incoming().status == 'hadir'
-          && hasValidOptionalLocation()
+          && hasValidLocation()
           && incoming().timestamp == request.time
           && validActiveCheckin(incoming().tanggal, incoming().qrToken))
         || isAdmin()

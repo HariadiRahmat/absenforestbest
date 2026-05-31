@@ -49,6 +49,25 @@ export interface QRCodeConfig {
   expiresAt: any; // Firestore Timestamp
 }
 
+/** Pengaturan geofence lokasi latihan — disimpan di settings/geofence */
+export interface GeofenceConfig {
+  enabled: boolean;
+  label: string;
+  latitude: number;
+  longitude: number;
+  /** Jarak maksimum dari pusat lokasi, dalam meter */
+  radiusMeters: number;
+  updatedAt?: any;
+}
+
+export const DEFAULT_GEOFENCE: GeofenceConfig = {
+  enabled: false,
+  label: 'Lokasi Latihan',
+  latitude: -5.0895,
+  longitude: 119.6107,
+  radiusMeters: 100,
+};
+
 export enum OperationType {
   CREATE = 'create',
   UPDATE = 'update',

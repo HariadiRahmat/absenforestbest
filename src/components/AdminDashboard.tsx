@@ -20,6 +20,7 @@ import {
 } from 'firebase/firestore';
 import { UserProfile, AttendanceRecord, QRCodeConfig, UserRole, UserStatus, AttendanceStatus, OperationType } from '../types';
 import { QRGenerator } from './QRGenerator';
+import { GeofenceSettings } from './GeofenceSettings';
 import { Alert } from './ui/Alert';
 import {
   Users,
@@ -39,6 +40,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Sparkles,
+  MapPin,
   BarChart2
 } from 'lucide-react';
 
@@ -55,7 +57,7 @@ export function AdminDashboard() {
   const todayStr = getTodayStr();
 
   // Navigation states
-  const [adminTab, setAdminTab] = useState<'qr_monitor' | 'crud_anggota' | 'rekap'>('qr_monitor');
+  const [adminTab, setAdminTab] = useState<'qr_monitor' | 'crud_anggota' | 'rekap' | 'geofence'>('qr_monitor');
 
   // Core Firestore states
   const [users, setUsers] = useState<UserProfile[]>([]);
@@ -425,6 +427,7 @@ export function AdminDashboard() {
             { id: 'admin-tab-qr', key: 'qr_monitor' as const, label: 'QR & Live', icon: QrCode },
             { id: 'admin-tab-crud', key: 'crud_anggota' as const, label: 'Anggota', icon: Users },
             { id: 'admin-tab-rekap', key: 'rekap' as const, label: 'Rekap', icon: FileSpreadsheet },
+            { id: 'admin-tab-geofence', key: 'geofence' as const, label: 'GPS', icon: MapPin },
           ]).map(({ id, key, label, icon: Icon }) => (
             <button
               key={key}
@@ -775,6 +778,8 @@ export function AdminDashboard() {
               )}
             </div>
           )}
+
+          {adminTab === 'geofence' && <GeofenceSettings />}
         </div>
       </div>
 

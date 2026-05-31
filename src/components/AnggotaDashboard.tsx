@@ -9,6 +9,7 @@ import { db, logFirestoreError } from '../lib/firebase';
 import { sortByTimestampDesc } from '../lib/normalizeUserProfile';
 import { collection, query, where, onSnapshot, setDoc, doc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { verifyActiveCheckin } from '../lib/activeCheckin';
+import { verifyGeofence } from '../lib/geofence';
 import { AttendanceRecord, AttendanceStatus, OperationType } from '../types';
 import { QRScanner, AttendancePayload } from './QRScanner';
 import { parseAttendanceError } from '../lib/attendanceErrors';
@@ -96,6 +97,7 @@ export function AnggotaDashboard() {
       }
 
       await verifyActiveCheckin(payload.tanggal, payload.qrToken);
+      await verifyGeofence(payload.latitude, payload.longitude);
 
       const newRecord: AttendanceRecord = {
         userId: payload.userId,
@@ -276,7 +278,7 @@ export function AnggotaDashboard() {
                 title="Panduan absensi"
                 tips={[
                   'Scan QR yang aktif di dashboard Pembina hari ini.',
-                  'Izinkan akses GPS untuk verifikasi lokasi.',
+                  'Izinkan akses GPS — wajib jika geofence latihan aktif.',
                   'Satu absensi per hari per anggota.',
                 ]}
               />

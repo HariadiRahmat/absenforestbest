@@ -9,6 +9,8 @@ import { Camera, MapPin, Keyboard, ShieldCheck, QrCode } from 'lucide-react';
 import { parseQrScan, validateQrForToday } from '../lib/qrPayload';
 import { getTodayStr } from '../lib/dateUtils';
 import { parseAttendanceError } from '../lib/attendanceErrors';
+import { getGeofenceConfig, isWithinGeofence, geofenceMapsUrl } from '../lib/geofence';
+import { GeofenceConfig } from '../types';
 import { Alert, type FriendlyError } from './ui/Alert';
 
 export interface AttendancePayload {
@@ -62,9 +64,14 @@ export function QRScanner({
   });
   const [gpsStatus, setGpsStatus] = useState<'idle' | 'fetching' | 'success' | 'denied'>('idle');
   const [scanSuccess, setScanSuccess] = useState(false);
+  const [geofence, setGeofence] = useState<GeofenceConfig | null>(null);
 
   const qrCodeScannerRef = useRef<Html5Qrcode | null>(null);
   const scannerId = 'reader-element-canvas';
+
+  useEffect(() => {
+    getGeofenceConfig().then(setGeofence).catch(console.warn);
+  }, []);
 
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -190,6 +197,7 @@ export function QRScanner({
   };
 
   const displayError = localError ?? error;
+  const withinGeofence = geofence ? isWithinGeofence(geofence, gpsCoords.lat, gpsCoords.lng) : null;
 
   return (
     <div id="scout-scanner-container" className="scout-card p-6 max-w-md mx-auto">
@@ -212,20 +220,44 @@ export function QRScanner({
         </div>
         <div
           className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs border ${
-            gpsStatus === 'success'
+            gpsStatus === 'success' && withinGeofence === true
               ? 'bg-lime-50 text-lime-800 border-lime-200'
-              : gpsStatus === 'denied'
-                ? 'bg-amber-50 text-amber-800 border-amber-100'
-                : 'bg-bento-soft text-bento-muted border-bento-border'
+              : gpsStatus === 'success' && withinGeofence === false
+                ? 'bg-rose-50 text-rose-800 border-rose-100'
+                : gpsStatus === 'success'
+                  ? 'bg-lime-50 text-lime-800 border-lime-200'
+                  : gpsStatus === 'denied'
+                    ? 'bg-amber-50 text-amber-800 border-amber-100'
+                    : 'bg-bento-soft text-bento-muted border-bento-border'
           }`}
         >
           <MapPin className="w-3.5 h-3.5" />
           {gpsStatus === 'fetching' && 'Mencari GPS...'}
-          {gpsStatus === 'success' && `GPS (${gpsCoords.lat?.toFixed(4)}, ${gpsCoords.lng?.toFixed(4)})`}
+          {gpsStatus === 'success' && withinGeofence === false && geofence?.enabled && 'Di luar area latihan'}
+          {gpsStatus === 'success' && withinGeofence === true && geofence?.enabled && 'Dalam area latihan'}
+          {gpsStatus === 'success' && withinGeofence === null && `GPS (${gpsCoords.lat?.toFixed(4)}, ${gpsCoords.lng?.toFixed(4)})`}
           {gpsStatus === 'denied' && 'GPS tidak aktif'}
           {gpsStatus === 'idle' && 'Menyiapkan GPS...'}
         </div>
       </div>
+
+      {geofence?.enabled && (
+        <div className="mb-4 space-y-2">
+          <Alert
+            variant="info"
+            title={`Area latihan: ${geofence.label}`}
+            message={`Absensi hanya bisa dilakukan dalam radius ${geofence.radiusMeters} m dari lokasi latihan.`}
+          />
+          <a
+            href={geofenceMapsUrl(geofence)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex text-xs font-semibold text-bento-primary hover:underline"
+          >
+            Lihat lokasi latihan di Google Maps →
+          </a>
+        </div>
+      )}
 
       {displayError && (
         <Alert
