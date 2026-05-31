@@ -16,13 +16,15 @@ import {
   AttendanceRecord,
   PurnaApprovalStatus,
   PurnaRegistration,
+  PreRegisteredMember,
   UserProfile,
-  UserRole,
 } from '../../types';
+import { buildMemberRoleStats, countActiveLoggedInAnggota } from '../../lib/purnaDirectory';
 
 interface AdminOverviewPageProps {
   userName: string;
   users: UserProfile[];
+  preRegistered: PreRegisteredMember[];
   attendanceToday: AttendanceRecord[];
   purnaApplications: PurnaRegistration[];
   loadingPurna: boolean;
@@ -42,20 +44,19 @@ function formatHeaderDate() {
 export function AdminOverviewPage({
   userName,
   users,
+  preRegistered,
   attendanceToday,
   purnaApplications,
   loadingPurna,
   onNavigateAbsensi,
   onNavigateKelolaPurna,
 }: AdminOverviewPageProps) {
-  const totalAnggota = users.filter((u) => u.role === UserRole.ANGGOTA).length;
-  const totalPembina = users.filter((u) => u.role === UserRole.ADMIN).length;
-  const totalPurna = users.filter((u) => u.role === UserRole.PURNA).length;
-  const totalUsers = users.length;
+  const memberStats = buildMemberRoleStats(users, preRegistered, purnaApplications);
+  const activeAnggotaCount = countActiveLoggedInAnggota(users);
 
   const loggedToday = attendanceToday.length;
-  const missingToday = Math.max(0, totalAnggota - loggedToday);
-  const attendanceRate = totalAnggota > 0 ? Math.round((loggedToday / totalAnggota) * 100) : 0;
+  const missingToday = Math.max(0, activeAnggotaCount - loggedToday);
+  const attendanceRate = activeAnggotaCount > 0 ? Math.round((loggedToday / activeAnggotaCount) * 100) : 0;
 
   const pendingPurna = purnaApplications.filter(
     (a) => a.approvalStatus === PurnaApprovalStatus.PENDING
@@ -80,25 +81,25 @@ export function AdminOverviewPage({
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           <StatCard
             label="Total Pengguna"
-            value={totalUsers}
+            value={memberStats.total}
             icon={Users}
             iconClass="bg-bento-highlight text-bento-primary"
           />
           <StatCard
             label="Anggota"
-            value={totalAnggota}
+            value={memberStats.anggota}
             icon={UserCheck}
             iconClass="bg-bento-accent text-bento-dark"
           />
           <StatCard
             label="Pembina"
-            value={totalPembina}
+            value={memberStats.pembina}
             icon={Shield}
             iconClass="bg-bento-soft text-bento-muted"
           />
           <StatCard
             label="Purna"
-            value={totalPurna}
+            value={memberStats.purna}
             icon={Award}
             iconClass="bg-amber-50 text-amber-700"
           />
@@ -129,7 +130,7 @@ export function AdminOverviewPage({
         <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-4">
           <MiniStat label="Hadir" value={loggedToday} accent="text-lime-700 bg-lime-50 border-lime-100" />
           <MiniStat label="Belum" value={missingToday} accent="text-amber-800 bg-amber-50 border-amber-100" />
-          <MiniStat label="Target" value={totalAnggota} accent="text-bento-text bg-bento-soft border-bento-border" />
+          <MiniStat label="Target" value={activeAnggotaCount} accent="text-bento-text bg-bento-soft border-bento-border" />
         </div>
 
         {attendanceToday.length === 0 ? (

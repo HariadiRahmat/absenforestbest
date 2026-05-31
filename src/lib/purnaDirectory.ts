@@ -137,3 +137,64 @@ export function buildPurnaDirectoryList(
     false
   );
 }
+
+export interface MemberRoleStats {
+  total: number;
+  anggota: number;
+  pembina: number;
+  purna: number;
+}
+
+/** Hitung anggota per role — sama dengan daftar di Kelola (users + pre_registered + disetujui). */
+export function buildMemberRoleStats(
+  users: UserProfile[],
+  preRegistered: PreRegisteredMember[],
+  applications: MemberRegistration[]
+): MemberRoleStats {
+  const anggota = buildMemberDirectoryList(
+    UserRole.ANGGOTA,
+    users,
+    preRegistered,
+    applications,
+    '',
+    'ALL',
+    'ALL',
+    false
+  ).length;
+
+  const pembina = buildMemberDirectoryList(
+    UserRole.ADMIN,
+    users,
+    preRegistered,
+    applications,
+    '',
+    'ALL',
+    'ALL',
+    false
+  ).length;
+
+  const purna = buildMemberDirectoryList(
+    UserRole.PURNA,
+    users,
+    preRegistered,
+    applications,
+    '',
+    'ALL',
+    'ALL',
+    false
+  ).length;
+
+  return {
+    total: anggota + pembina + purna,
+    anggota,
+    pembina,
+    purna,
+  };
+}
+
+/** Anggota aktif yang sudah login — dipakai untuk target absensi. */
+export function countActiveLoggedInAnggota(users: UserProfile[]): number {
+  return users.filter(
+    (u) => u.role === UserRole.ANGGOTA && u.status !== UserStatus.NON_AKTIF
+  ).length;
+}

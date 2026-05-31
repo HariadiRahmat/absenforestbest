@@ -11,7 +11,7 @@ import { AdminPageNav, AdminPage } from './admin/AdminPageNav';
 import { AdminOverviewPage } from './admin/AdminOverviewPage';
 import { AdminAbsensiPage, AdminAbsensiTab } from './admin/AdminAbsensiPage';
 import { AdminKelolaPage, AdminKelolaTab } from './admin/AdminKelolaPage';
-import { UserRole } from '../types';
+import { countActiveLoggedInAnggota } from '../lib/purnaDirectory';
 
 export function AdminDashboard() {
   const { userProfile } = useAuth();
@@ -35,7 +35,7 @@ export function AdminDashboard() {
   const [absensiTab, setAbsensiTab] = useState<AdminAbsensiTab>('qr_monitor');
   const [kelolaTab, setKelolaTab] = useState<AdminKelolaTab>('crud_anggota');
 
-  const totalScoutsCount = users.filter((u) => u.role === UserRole.ANGGOTA).length;
+  const totalScoutsCount = countActiveLoggedInAnggota(users);
 
   return (
     <div
@@ -71,6 +71,7 @@ export function AdminDashboard() {
           <AdminOverviewPage
             userName={userProfile?.nama || 'Pembina'}
             users={users}
+            preRegistered={preRegistered}
             attendanceToday={attendanceToday}
             purnaApplications={purnaApplications}
             loadingPurna={loadingPurna}
