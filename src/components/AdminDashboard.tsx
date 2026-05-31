@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import { db, logFirestoreError, handleFirestoreError } from '../lib/firebase';
 import { normalizeUserProfile, sortByTimestampDesc } from '../lib/normalizeUserProfile';
 import { getTodayStr } from '../lib/dateUtils';
@@ -40,7 +41,6 @@ import {
   ToggleLeft,
   ToggleRight,
   Sparkles,
-  MapPin,
   BarChart2
 } from 'lucide-react';
 
@@ -54,6 +54,7 @@ function formatHeaderDate() {
 }
 
 export function AdminDashboard() {
+  const { userProfile } = useAuth();
   const todayStr = getTodayStr();
 
   // Navigation states
@@ -368,7 +369,7 @@ export function AdminDashboard() {
             </div>
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Control Panel</p>
-              <h1 className="text-xl font-bold text-bento-text">Dashboard Pembina</h1>
+              <h1 className="text-xl font-bold text-bento-text">{userProfile?.nama || 'Pembina'}</h1>
               <p className="text-sm text-bento-muted mt-0.5">{formatHeaderDate()}</p>
             </div>
           </div>
