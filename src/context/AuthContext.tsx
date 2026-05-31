@@ -19,8 +19,8 @@ import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { normalizeUserProfile } from '../lib/normalizeUserProfile';
 import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage, isMissingRedirectStateError } from '../lib/authErrors';
 import { UserProfile, UserRole, UserStatus, OperationType, PurnaApprovalStatus } from '../types';
-import { isPurnaProfileComplete, PurnaProfileFormData } from '../lib/purnaProfile';
-import { OnboardingFormData, onboardingFormToProfilePatch } from '../lib/onboardingProfile';
+import { PurnaProfileFormData } from '../lib/purnaProfile';
+import { OnboardingFormData, onboardingFormToProfilePatch, emptyOnboardingForm } from '../lib/onboardingProfile';
 import { normalizeMemberRegistration } from '../lib/purnaRegistration';
 import { AuthGateStatus } from '../lib/authGate';
 import { stripUndefined } from '../lib/firestoreUtils';
@@ -38,6 +38,7 @@ interface AuthContextType {
   retryProfileSetup: (options?: { silent?: boolean }) => Promise<void>;
   registerProfile: (nama: string, kelas: string, regu: string) => Promise<void>;
   updateProfileDetails: (nama: string, kelas: string, regu: string) => Promise<void>;
+  updateMemberBiodata: (form: OnboardingFormData) => Promise<void>;
   updatePurnaProfile: (fields: PurnaProfileFormData) => Promise<void>;
   completeOnboarding: (form: OnboardingFormData) => Promise<void>;
 }
@@ -470,15 +471,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateMemberBiodata = async (form: OnboardingFormData) => {
+    if (!currentUser || !userProfile) throw new Error('Profil pengguna tidak ditemukan.');
+    if (userProfile.role === UserRole.ADMIN) {
+      throw new Error('Pembina tidak dapat mengubah biodata melalui formulir ini.');
+    }
+
+    const userRef = doc(db, 'users', currentUser.uid);
+    const patch = onboardingFormToProfilePatch(form);
+
+    try {
+      await updateDoc(userRef, stripUndefined(patch));
+      setUserProfile({
+        ...userProfile,
+        ...(patch as Partial<UserProfile>),
+      });
+    } catch (error) {
+      handleFirestoreError(error, OperationType.UPDATE, `users/${currentUser.uid}`);
+    }
+  };
+
   const updatePurnaProfile = async (fields: PurnaProfileFormData) => {
     if (!currentUser || !userProfile || userProfile.role !== UserRole.PURNA) {
       throw new Error('Profil purna tidak ditemukan.');
     }
 
-    const userRef = doc(db, 'users', currentUser.uid);
-    const updatedProfile: UserProfile = {
-      ...userProfile,
-      nama: fields.nama.trim(),
+    const namaParts = fields.nama.trim().split(/\s+/);
+    await updateMemberBiodata({
+      ...emptyOnboardingForm(userProfile),
+      namaDepan: namaParts[0] ?? '',
+      namaBelakang: namaParts.slice(1).join(' '),
       tanggalLahir: fields.tanggalLahir.trim(),
       alamat: fields.alamat.trim(),
       agama: fields.agama.trim(),
@@ -487,15 +509,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       pendidikanSma: fields.pendidikanSma.trim(),
       pendidikanKuliah: fields.pendidikanKuliah.trim(),
       statusPerkawinan: fields.statusPerkawinan.trim(),
-      profileComplete: false,
-    };
-    updatedProfile.profileComplete = isPurnaProfileComplete(updatedProfile);
-
-    try {
-      await setDoc(userRef, updatedProfile);
-    } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, `users/${currentUser.uid}`);
-    }
+    });
   };
 
   const completeOnboarding = async (form: OnboardingFormData) => {
@@ -529,6 +543,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         retryProfileSetup,
         registerProfile,
         updateProfileDetails,
+        updateMemberBiodata,
         updatePurnaProfile,
         completeOnboarding,
       }}

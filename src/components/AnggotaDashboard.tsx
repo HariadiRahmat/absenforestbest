@@ -13,11 +13,11 @@ import { verifyGeofence } from '../lib/geofence';
 import { AttendanceRecord, AttendanceStatus, OperationType } from '../types';
 import { QRScanner, AttendancePayload } from './QRScanner';
 import { parseAttendanceError } from '../lib/attendanceErrors';
-import { parseFormAlertMessage } from '../lib/friendlyErrors';
 import type { FriendlyError } from './ui/Alert';
 import { Alert } from './ui/Alert';
 import { TabNav } from './ui/TabNav';
 import { UpcomingEventsPanel } from './UpcomingEventsPanel';
+import { MemberBiodataPanel } from './MemberBiodataPanel';
 import { getTodayStr } from '../lib/dateUtils';
 import {
   Shield,
@@ -28,14 +28,12 @@ import {
   History,
   User,
   LogOut,
-  Edit2,
-  Save,
   QrCode,
   Flame,
 } from 'lucide-react';
 
 export function AnggotaDashboard() {
-  const { currentUser, userProfile, updateProfileDetails, logout } = useAuth();
+  const { currentUser, userProfile, updateMemberBiodata, logout } = useAuth();
   
   // States
   const [activeTab, setActiveTab] = useState<'absen' | 'riwayat' | 'profil'>('absen');
@@ -43,24 +41,8 @@ export function AnggotaDashboard() {
   const [todayRecord, setTodayRecord] = useState<AttendanceRecord | null>(null);
   const [checkingIn, setCheckingIn] = useState(false);
   const [scanError, setScanError] = useState<FriendlyError | null>(null);
-  
-  // Profile edit states
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [newName, setNewName] = useState(userProfile?.nama || '');
-  const [newKelas, setNewKelas] = useState(userProfile?.kelas || '');
-  const [newRegu, setNewRegu] = useState(userProfile?.regu || '');
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileSaveError, setProfileSaveError] = useState<string | null>(null);
 
   const todayStr = getTodayStr();
-
-  useEffect(() => {
-    if (!isEditingProfile && userProfile) {
-      setNewName(userProfile.nama || '');
-      setNewKelas(userProfile.kelas || '');
-      setNewRegu(userProfile.regu || '');
-    }
-  }, [userProfile, isEditingProfile]);
 
   // Listen to Personal Attendance History
   useEffect(() => {
@@ -130,33 +112,6 @@ export function AnggotaDashboard() {
       setCheckingIn(false);
     }
   };
-
-  const handleSaveProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newName.trim() || !newKelas.trim() || !newRegu.trim()) return;
-    setProfileSaving(true);
-    setProfileSaveError(null);
-    try {
-      await updateProfileDetails(newName.trim(), newKelas.trim(), newRegu.trim());
-      setIsEditingProfile(false);
-    } catch (err) {
-      const raw = err instanceof Error ? err.message : String(err);
-      let message = raw;
-      try {
-        const parsed = JSON.parse(raw) as { error?: string };
-        message = parsed.error || raw;
-      } catch {
-        // keep raw message
-      }
-      setProfileSaveError(message);
-    } finally {
-      setProfileSaving(false);
-    }
-  };
-
-  const profileSaveAlert = profileSaveError
-    ? parseFormAlertMessage(profileSaveError, 'Gagal menyimpan profil')
-    : null;
 
   // Calculate consecutive-day streak (ends today if attended, otherwise yesterday)
   const hadirDates = new Set(
@@ -362,131 +317,13 @@ export function AnggotaDashboard() {
             </div>
           )}
 
-          {activeTab === 'profil' && (
-            <div className="scout-card p-4 sm:p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <User className="w-5 h-5 text-bento-primary" />
-                <h3 className="font-sans text-base font-extrabold text-bento-text">Kelola Informasi Profil</h3>
-              </div>
-
-              {profileSaveAlert && (
-                <Alert
-                  variant="error"
-                  title={profileSaveAlert.title}
-                  message={profileSaveAlert.message}
-                  tips={profileSaveAlert.tips}
-                  className="mb-4"
-                  onDismiss={() => setProfileSaveError(null)}
-                />
-              )}
-
-              {isEditingProfile ? (
-                <form onSubmit={handleSaveProfile} className="space-y-4">
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Nama Lengkap</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-3 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm bg-bento-soft"
-                      value={newName}
-                      onChange={(e) => setNewName(e.target.value)}
-                      disabled={profileSaving}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Kelas</label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-3 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm bg-bento-soft"
-                        value={newKelas}
-                        onChange={(e) => setNewKelas(e.target.value)}
-                        disabled={profileSaving}
-                        required
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Regu</label>
-                      <input
-                        type="text"
-                        className="w-full px-4 py-3 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm bg-bento-soft"
-                        value={newRegu}
-                        onChange={(e) => setNewRegu(e.target.value)}
-                        disabled={profileSaving}
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <button
-                      id="btn-cancel-edit-profile"
-                      type="button"
-                      onClick={() => {
-                        setIsEditingProfile(false);
-                        setProfileSaveError(null);
-                      }}
-                      disabled={profileSaving}
-                      className="flex-1 py-3 scout-btn-secondary text-sm"
-                    >
-                      Batal
-                    </button>
-                    <button
-                      id="btn-save-edit-profile"
-                      type="submit"
-                      disabled={profileSaving}
-                      className="flex-1 scout-btn-primary text-sm py-3"
-                    >
-                      {profileSaving ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4" />
-                          Simpan
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
-              ) : (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 divide-y divide-slate-100">
-                    <div className="py-3 flex justify-between text-xs">
-                      <span className="text-slate-500 font-sans">Nama</span>
-                      <span className="font-extrabold text-slate-800">{userProfile?.nama}</span>
-                    </div>
-                    <div className="py-3 flex justify-between text-xs">
-                      <span className="text-slate-500 font-sans">Kelas</span>
-                      <span className="font-extrabold text-slate-800">{userProfile?.kelas}</span>
-                    </div>
-                    <div className="py-3 flex justify-between text-xs">
-                      <span className="text-slate-500 font-sans">Regu</span>
-                      <span className="font-extrabold text-slate-800">{userProfile?.regu}</span>
-                    </div>
-                    <div className="py-3 flex justify-between text-xs">
-                      <span className="text-slate-500 font-sans">Email</span>
-                      <span className="font-mono text-slate-600">{userProfile?.email}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    id="btn-start-edit-profile"
-                    onClick={() => {
-                      setNewName(userProfile?.nama || '');
-                      setNewKelas(userProfile?.kelas || '');
-                      setNewRegu(userProfile?.regu || '');
-                      setProfileSaveError(null);
-                      setIsEditingProfile(true);
-                    }}
-                    className="w-full scout-btn-secondary py-3.5 text-sm"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit Profil Saya
-                  </button>
-                </div>
-              )}
-            </div>
+          {activeTab === 'profil' && userProfile && (
+            <MemberBiodataPanel
+              profile={userProfile}
+              onSave={updateMemberBiodata}
+              title="Biodata Anggota"
+              subtitle="Data diri lengkap sesuai profil keanggotaan"
+            />
           )}
         </div>
         </div>

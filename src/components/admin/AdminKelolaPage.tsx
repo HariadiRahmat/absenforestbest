@@ -5,8 +5,9 @@ import { MemberDirectory } from '../MemberDirectory';
 import { PurnaApplicationsPanel } from '../PurnaApplicationsPanel';
 import { PurnaLinksSettings } from '../PurnaLinksSettings';
 import { MemberCrudModal } from './MemberCrudModal';
-import { PurnaProfileViewModal } from './PurnaProfileViewModal';
+import { MemberProfileModal, MemberProfileSavePayload } from './MemberProfileModal';
 import { buildMemberDirectoryList, isPreRegisteredUserId } from '../../lib/purnaDirectory';
+import { onboardingFormToProfilePatch } from '../../lib/onboardingProfile';
 import { UserProfile, UserRole, UserStatus, PurnaRegistration, PreRegisteredMember } from '../../types';
 import { db, handleFirestoreError } from '../../lib/firebase';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
@@ -52,7 +53,8 @@ export function AdminKelolaPage({
   const [memberSearchPurna, setMemberSearchPurna] = useState('');
   const [memberFilterRegu, setMemberFilterRegu] = useState('ALL');
   const [memberFilterKelas, setMemberFilterKelas] = useState('ALL');
-  const [viewPurnaMember, setViewPurnaMember] = useState<UserProfile | null>(null);
+  const [viewMember, setViewMember] = useState<UserProfile | null>(null);
+  const [profileModalMode, setProfileModalMode] = useState<'view' | 'edit'>('view');
 
   const anggotaDirectory = buildMemberDirectoryList(
     UserRole.ANGGOTA,
@@ -110,18 +112,84 @@ export function AdminKelolaPage({
     setShowMemberModal(true);
   };
 
+  const handleOpenViewModal = (member: UserProfile) => {
+    setViewMember(member);
+    setProfileModalMode('view');
+  };
+
   const handleOpenEditModal = (member: UserProfile) => {
-    setIsEditMode(true);
-    setSelectedMemberId(member.userId);
-    setFormName(member.nama);
-    setFormEmail(member.email);
-    setFormClass(member.kelas);
-    setFormSquad(member.regu);
-    setFormRole(member.role);
-    setFormContextRole(member.role);
-    setFormStatus(member.status);
-    setFormError(null);
-    setShowMemberModal(true);
+    if (isPreRegisteredUserId(member.userId)) {
+      setIsEditMode(true);
+      setSelectedMemberId(member.userId);
+      setFormName(member.nama);
+      setFormEmail(member.email);
+      setFormClass(member.kelas);
+      setFormSquad(member.regu);
+      setFormRole(member.role);
+      setFormContextRole(member.role);
+      setFormStatus(member.status);
+      setFormError(null);
+      setShowMemberModal(true);
+      return;
+    }
+
+    setViewMember(member);
+    setProfileModalMode('edit');
+  };
+
+  const handleSaveProfileModal = async (member: UserProfile, payload: MemberProfileSavePayload) => {
+    const emailKey = member.email.toLowerCase();
+    const nextRole = payload.role ?? member.role;
+    const nextStatus = payload.status ?? member.status;
+
+    if (isProtectedAdminAccount(emailKey) && nextRole !== UserRole.ADMIN) {
+      throw new Error(PROTECTED_ADMIN_MESSAGE);
+    }
+
+    if (payload.biodata) {
+      const patch = onboardingFormToProfilePatch(payload.biodata);
+      if (isPreRegisteredUserId(member.userId)) {
+        await setDoc(doc(db, 'pre_registered', emailKey), stripUndefined({
+          ...member,
+          ...patch,
+          email: emailKey,
+          role: nextRole,
+          status: nextStatus,
+        }));
+      } else {
+        await updateDoc(doc(db, 'users', member.userId), stripUndefined({
+          ...patch,
+          role: nextRole,
+          status: nextStatus,
+        }));
+      }
+    } else {
+      const resolvedName = payload.nama?.trim() || member.nama;
+      const resolvedClass = payload.kelas?.trim() || member.kelas;
+      const resolvedSquad = payload.regu?.trim() || member.regu;
+
+      if (isPreRegisteredUserId(member.userId)) {
+        await setDoc(doc(db, 'pre_registered', emailKey), stripUndefined({
+          ...member,
+          nama: resolvedName,
+          email: emailKey,
+          kelas: resolvedClass,
+          regu: resolvedSquad,
+          role: nextRole,
+          status: nextStatus,
+        }));
+      } else {
+        await updateDoc(doc(db, 'users', member.userId), stripUndefined({
+          nama: resolvedName,
+          kelas: resolvedClass,
+          regu: resolvedSquad,
+          role: nextRole,
+          status: nextStatus,
+        }));
+      }
+    }
+
+    await syncRegistrationApprovedRole(emailKey, nextRole);
   };
 
   const handleFormRoleChange = (role: UserRole) => {
@@ -293,6 +361,7 @@ export function AdminKelolaPage({
           onEdit={handleOpenEditModal}
           onDelete={handleDeleteMember}
           onToggleStatus={handleToggleStatus}
+          onView={handleOpenViewModal}
           isMemberProtected={(member) => isProtectedAdminAccount(member.email)}
         />
       )}
@@ -314,6 +383,7 @@ export function AdminKelolaPage({
           onEdit={handleOpenEditModal}
           onDelete={handleDeleteMember}
           onToggleStatus={handleToggleStatus}
+          onView={handleOpenViewModal}
           isMemberProtected={(member) => isProtectedAdminAccount(member.email)}
         />
       )}
@@ -335,14 +405,20 @@ export function AdminKelolaPage({
             onEdit={handleOpenEditModal}
             onDelete={handleDeleteMember}
             onToggleStatus={handleToggleStatus}
-          onView={setViewPurnaMember}
+          onView={handleOpenViewModal}
           compact
           isMemberProtected={(member) => isProtectedAdminAccount(member.email)}
         />
       )}
 
-      {viewPurnaMember && (
-        <PurnaProfileViewModal member={viewPurnaMember} onClose={() => setViewPurnaMember(null)} />
+      {viewMember && (
+        <MemberProfileModal
+          member={viewMember}
+          initialMode={profileModalMode}
+          onClose={() => setViewMember(null)}
+          onSave={handleSaveProfileModal}
+          lockRole={isProtectedAdminAccount(viewMember.email)}
+        />
       )}
 
       {tab === 'purna_docs' && <PurnaLinksSettings />}

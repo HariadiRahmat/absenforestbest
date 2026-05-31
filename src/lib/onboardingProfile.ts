@@ -80,6 +80,18 @@ export function isOnboardingComplete(profile: UserProfile): boolean {
   return false;
 }
 
+export function validateMemberBiodataForm(form: OnboardingFormData): string | null {
+  for (let step = 1; step <= 3; step += 1) {
+    const err = validateOnboardingStep(step, form);
+    if (err) return err;
+  }
+  return null;
+}
+
+export function membershipStatusLabel(status?: MembershipStatus | string | null): string {
+  return status === 'purna' ? 'Sudah Purna' : 'Anggota Aktif';
+}
+
 export function validateOnboardingStep(step: number, form: OnboardingFormData): string | null {
   if (step === 1) {
     if (!form.namaDepan.trim()) return 'Nama depan wajib diisi.';

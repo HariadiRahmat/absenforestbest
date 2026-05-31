@@ -6,7 +6,7 @@
 import React from 'react';
 import { Edit2, Plus, Search, Trash2, Users, CheckCircle2, Clock, Eye } from 'lucide-react';
 import { UserProfile, UserRole, UserStatus } from '../types';
-import { isPurnaProfileComplete } from '../lib/purnaProfile';
+import { isOnboardingComplete } from '../lib/onboardingProfile';
 import { isPreRegisteredUserId } from '../lib/purnaDirectory';
 
 export interface MemberDirectoryProps {
@@ -188,6 +188,7 @@ export function MemberDirectory({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onToggleStatus={onToggleStatus}
+                onView={onView}
                 protectedMember={isProtected(member)}
               />
             ))}
@@ -198,7 +199,7 @@ export function MemberDirectory({
               <thead>
                 <tr className="border-b border-bento-border bg-bento-soft text-[10px] font-bold text-bento-muted uppercase tracking-wider">
                   <th className="p-4 rounded-l-2xl">Nama & Email</th>
-                  {role === UserRole.ANGGOTA && <th className="p-4">Kelas / Regu</th>}
+                  {role === UserRole.ANGGOTA && <th className="p-4">Kelas / Profil</th>}
                   {role === UserRole.ADMIN && <th className="p-4">Unit</th>}
                   {role === UserRole.PURNA && <th className="p-4">Profil</th>}
                   <th className="p-4 text-center">Status</th>
@@ -217,14 +218,12 @@ export function MemberDirectory({
                         <>
                           <div className="font-semibold">Kelas {member.kelas}</div>
                           <div className="text-bento-muted mt-0.5">Regu {member.regu}</div>
-                          {isPreRegisteredUserId(member.userId) && (
-                            <div className="mt-1.5">
-                              <PendingLoginBadge />
-                            </div>
-                          )}
+                          <div className="mt-1.5">
+                            <ProfileCompleteBadge member={member} />
+                          </div>
                         </>
                       ) : role === UserRole.PURNA ? (
-                        <PurnaProfileBadge member={member} />
+                        <ProfileCompleteBadge member={member} />
                       ) : (
                         <>
                           <div className="text-bento-muted">
@@ -242,7 +241,7 @@ export function MemberDirectory({
                       <StatusBadge member={member} onToggle={() => onToggleStatus(member)} />
                     </td>
                     <td className="p-4 text-right space-x-2">
-                      {onView && role === UserRole.PURNA && (
+                      {onView && (
                         <button
                           type="button"
                           onClick={() => onView(member)}
@@ -300,6 +299,7 @@ function MemberCard({
   onEdit,
   onDelete,
   onToggleStatus,
+  onView,
   protectedMember = false,
 }: {
   member: UserProfile;
@@ -307,6 +307,7 @@ function MemberCard({
   onEdit: (m: UserProfile) => void;
   onDelete: (member: UserProfile) => void;
   onToggleStatus: (m: UserProfile) => void;
+  onView?: (m: UserProfile) => void;
   protectedMember?: boolean;
 }) {
   const avatarBg =
@@ -341,13 +342,19 @@ function MemberCard({
             <span className="scout-chip">Regu {member.regu}</span>
           </>
         ) : role === UserRole.PURNA ? (
-          <PurnaProfileBadge member={member} />
+          <ProfileCompleteBadge member={member} />
         ) : (
           <span className="scout-chip">{member.kelas} · {member.regu}</span>
         )}
       </div>
 
       <div className="scout-action-row">
+        {onView && (
+          <button type="button" onClick={() => onView(member)} className="scout-action-btn">
+            <Eye className="w-3.5 h-3.5" />
+            Lihat
+          </button>
+        )}
         <button type="button" onClick={() => onEdit(member)} className="scout-action-btn">
           <Edit2 className="w-3.5 h-3.5" />
           Ubah
@@ -372,12 +379,12 @@ function PendingLoginBadge() {
   );
 }
 
-function PurnaProfileBadge({ member }: { member: UserProfile }) {
+function ProfileCompleteBadge({ member }: { member: UserProfile }) {
   if (isPreRegisteredUserId(member.userId)) {
     return <PendingLoginBadge />;
   }
 
-  const complete = isPurnaProfileComplete(member);
+  const complete = isOnboardingComplete(member);
   return complete ? (
     <span className="inline-flex items-center gap-1 scout-chip text-lime-800 bg-lime-50 border-lime-200">
       <CheckCircle2 className="w-3 h-3" />
@@ -416,7 +423,7 @@ function CompactPurnaRow({
         <p className="text-[10px] text-bento-muted truncate font-mono">{member.email}</p>
       </div>
       <div className="hidden sm:block shrink-0">
-        <PurnaProfileBadge member={member} />
+        <ProfileCompleteBadge member={member} />
       </div>
       <StatusBadge member={member} onToggle={() => onToggleStatus(member)} />
       <div className="flex items-center gap-1 shrink-0">
