@@ -14,6 +14,7 @@ import {
   onAuthStateChanged,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
+import { FirebaseError } from 'firebase/app';
 import { auth, db, handleFirestoreError } from '../lib/firebase';
 import { normalizeUserProfile } from '../lib/normalizeUserProfile';
 import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage } from '../lib/authErrors';
@@ -129,6 +130,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (err) {
             console.error('Failed to resolve user profile:', err);
+            if (err instanceof FirebaseError && err.code === 'permission-denied') {
+              setAuthError(
+                'Firestore Rules belum di-deploy ke Firebase. Buka Firebase Console → Firestore → Rules, salin isi firestore.rules dari repo, lalu klik Publish.'
+              );
+            }
             setUserProfile(null);
           } finally {
             setLoading(false);

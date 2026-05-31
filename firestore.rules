@@ -2,12 +2,6 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. Global Safety Net
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    // Reusable, hardened global helpers
     function isSignedIn() {
       return request.auth != null;
     }
@@ -28,13 +22,16 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
 
-    // Secure Admin Identification
+    function isBootstrapEmail() {
+      return request.auth.token.email == 'hariadirahmat2003@gmail.com'
+        || request.auth.token.email == 'admin@gmail.com';
+    }
+
     function isAdmin() {
       return isSignedIn() && (
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         getUserData().role == 'admin') ||
-        (request.auth.token.email == 'hariadirahmat2003@gmail.com') ||
-        (request.auth.token.email == 'admin@gmail.com')
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && getUserData().role == 'admin')
+        || isBootstrapEmail()
       );
     }
 
@@ -42,106 +39,112 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    // 2. User Profiles Collection Rules
+    // ── Users ──────────────────────────────────────────────────────────────
     match /users/{userId} {
       allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
-      allow list: if isAdmin(); // PII Isolation (No unauthorized list queries)
-      
+      allow list: if isAdmin();
+
       allow create: if isSignedIn() && isValidId(userId) && (
-        // Standard User self-registration
-        (isOwner(userId) && 
-         incoming().userId == request.auth.uid &&
-         incoming().role == 'anggota' &&
-         incoming().status == 'aktif' &&
-         incoming().nama is string && incoming().nama.size() <= 100 &&
-         incoming().email == request.auth.token.email &&
-         incoming().kelas is string && incoming().kelas.size() <= 20 &&
-         incoming().regu is string && incoming().regu.size() <= 30 &&
-         incoming().createdAt == request.time
-        ) ||
-        // Migration from admin pre-registration on first login
-        (isOwner(userId) &&
-         incoming().userId == request.auth.uid &&
-         incoming().email == request.auth.token.email &&
-         incoming().role in ['anggota', 'admin'] &&
-         incoming().status in ['aktif', 'nonaktif'] &&
-         incoming().nama is string && incoming().nama.size() <= 100 &&
-         incoming().kelas is string && incoming().kelas.size() <= 20 &&
-         incoming().regu is string && incoming().regu.size() <= 30 &&
-         incoming().createdAt == request.time &&
-         exists(/databases/$(database)/documents/pre_registered/$(request.auth.token.email))
-        ) ||
-        // Admin registration of others
+        // Anggota self-register
+        (isOwner(userId)
+          && incoming().userId == request.auth.uid
+          && incoming().role == 'anggota'
+          && incoming().status == 'aktif'
+          && incoming().nama is string && incoming().nama.size() <= 100
+          && incoming().email == request.auth.token.email
+          && incoming().kelas is string && incoming().kelas.size() <= 20
+          && incoming().regu is string && incoming().regu.size() <= 30
+          && incoming().createdAt == request.time)
+        ||
+        // Pembina bootstrap — first Google login creates own admin profile
+        (isOwner(userId)
+          && isBootstrapEmail()
+          && incoming().userId == request.auth.uid
+          && incoming().role == 'admin'
+          && incoming().status == 'aktif'
+          && incoming().email == request.auth.token.email
+          && incoming().nama is string && incoming().nama.size() <= 100
+          && incoming().kelas is string && incoming().kelas.size() <= 20
+          && incoming().regu is string && incoming().regu.size() <= 30
+          && incoming().createdAt == request.time)
+        ||
+        // Pre-register migration on first login
+        (isOwner(userId)
+          && incoming().userId == request.auth.uid
+          && incoming().email == request.auth.token.email
+          && incoming().role in ['anggota', 'admin']
+          && incoming().status in ['aktif', 'nonaktif']
+          && incoming().nama is string && incoming().nama.size() <= 100
+          && incoming().kelas is string && incoming().kelas.size() <= 20
+          && incoming().regu is string && incoming().regu.size() <= 30
+          && incoming().createdAt == request.time
+          && exists(/databases/$(database)/documents/pre_registered/$(request.auth.token.email)))
+        ||
         isAdmin()
       );
 
       allow update: if isSignedIn() && isValidId(userId) && (
-        // Standard User updating own details except administrative fields
-        (isOwner(userId) && 
-         incoming().userId == existing().userId &&
-         incoming().role == existing().role &&
-         incoming().status == existing().status &&
-         incoming().email == existing().email &&
-         incoming().createdAt == existing().createdAt &&
-         incoming().diff(existing()).affectedKeys().hasOnly(['nama', 'kelas', 'regu']) &&
-         incoming().nama is string && incoming().nama.size() <= 100 &&
-         incoming().kelas is string && incoming().kelas.size() <= 20 &&
-         incoming().regu is string && incoming().regu.size() <= 30
-        ) ||
-        // Admin correction of details
-        isAdmin()
+        (isOwner(userId)
+          && incoming().userId == existing().userId
+          && incoming().role == existing().role
+          && incoming().status == existing().status
+          && incoming().email == existing().email
+          && incoming().createdAt == existing().createdAt
+          && incoming().diff(existing()).affectedKeys().hasOnly(['nama', 'kelas', 'regu'])
+          && incoming().nama is string && incoming().nama.size() <= 100
+          && incoming().kelas is string && incoming().kelas.size() <= 20
+          && incoming().regu is string && incoming().regu.size() <= 30)
+        || isAdmin()
       );
 
       allow delete: if isAdmin();
     }
 
-    // 3. Attendance Signature Collection Rules
+    // ── Attendance ─────────────────────────────────────────────────────────
     match /attendance/{attendanceId} {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
 
       allow create: if isSignedIn() && isValidId(attendanceId) && (
-        // Standard Member attendance submission validated via active dynamic QR code and location
-        (incoming().userId == request.auth.uid &&
-         incoming().nama is string && incoming().nama.size() <= 100 &&
-         incoming().tanggal is string && incoming().tanggal.size() == 10 &&
-         incoming().qrToken is string && incoming().qrToken.size() <= 100 &&
-         incoming().status == 'hadir' &&
-         (incoming().latitude == null || incoming().latitude is number) &&
-         (incoming().longitude == null || incoming().longitude is number) &&
-         incoming().timestamp == request.time &&
-         // Verify matching date/token against active Firestore QR settings
-         exists(/databases/$(database)/documents/qr_codes/$(incoming().tanggal)) &&
-         get(/databases/$(database)/documents/qr_codes/$(incoming().tanggal)).data.token == incoming().qrToken &&
-         get(/databases/$(database)/documents/qr_codes/$(incoming().tanggal)).data.active == true
-        ) ||
-        // Admin manual override addition
-        isAdmin()
+        (incoming().userId == request.auth.uid
+          && incoming().nama is string && incoming().nama.size() <= 100
+          && incoming().tanggal is string && incoming().tanggal.size() == 10
+          && incoming().qrToken is string && incoming().qrToken.size() <= 100
+          && incoming().status == 'hadir'
+          && (incoming().latitude == null || incoming().latitude is number)
+          && (incoming().longitude == null || incoming().longitude is number)
+          && incoming().timestamp == request.time
+          && exists(/databases/$(database)/documents/qr_codes/$(incoming().tanggal))
+          && get(/databases/$(database)/documents/qr_codes/$(incoming().tanggal)).data.token == incoming().qrToken
+          && get(/databases/$(database)/documents/qr_codes/$(incoming().tanggal)).data.active == true)
+        || isAdmin()
       );
 
-      // Attendance values locked unless updated by Admin
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow update, delete: if isAdmin();
     }
 
-    // 4. Daily QR Code Rotations Rules
+    // ── QR Codes ───────────────────────────────────────────────────────────
     match /qr_codes/{date} {
-      allow read: if isAdmin(); // Zero-Trust token leakage prevention
-      allow write: if isAdmin();
+      allow read, write: if isAdmin();
     }
 
-    // 5. Global Config Settings Rules
+    // ── Settings ───────────────────────────────────────────────────────────
     match /settings/{settingId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
     }
 
-    // 6. Admin Pre-Registration (linked to Auth UID on first Google login)
+    // ── Pre-registration ───────────────────────────────────────────────────
     match /pre_registered/{email} {
       allow get: if isSignedIn() && request.auth.token.email == email;
       allow list: if isAdmin();
       allow create, update: if isAdmin();
       allow delete: if isAdmin() || (isSignedIn() && request.auth.token.email == email);
+    }
+
+    // ── Deny everything else (must be last) ──────────────────────────────
+    match /{document=**} {
+      allow read, write: if false;
     }
   }
 }
