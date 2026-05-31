@@ -148,6 +148,39 @@ html, body {
   cursor: not-allowed;
 }
 
+.scout-btn-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  padding: 0.625rem 1rem;
+  background: #fff;
+  color: #1f1f1f;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  border: 1px solid #747775;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 1px 2px rgba(60, 64, 67, 0.08);
+}
+
+@media (min-width: 640px) {
+  .scout-btn-google {
+    padding: 0.75rem 1.25rem;
+    font-size: 0.875rem;
+  }
+}
+
+.scout-btn-google:hover {
+  background: #f8f9fa;
+  box-shadow: 0 1px 3px rgba(60, 64, 67, 0.12);
+}
+
+.scout-btn-google:active {
+  background: #f1f3f4;
+}
+
 .scout-btn-secondary {
   display: inline-flex;
   align-items: center;
@@ -541,6 +574,7 @@ html, body {
 }
 
 .scout-welcome-actions .scout-btn-primary,
+.scout-welcome-actions .scout-btn-google,
 .scout-welcome-actions .scout-btn-secondary {
   width: 100%;
   min-height: 3rem;
