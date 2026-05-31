@@ -43,12 +43,15 @@ export function AdminDashboard() {
       className="min-h-screen bg-bento-bg text-bento-text pb-[max(2rem,env(safe-area-inset-bottom))] sm:pb-12"
     >
       {rulesError && (
-        <div className="scout-page pt-4">
+        <div className="scout-page pt-5 sm:pt-6">
           <Alert
-            variant="error"
-            title="Firestore Rules belum aktif"
-            message={rulesError}
-            tips={['Buka Firebase Console → Firestore → Rules → Publish rules terbaru.']}
+            variant="warning"
+            title="Pembina: konfigurasi database"
+            message="Beberapa fitur admin belum bisa diakses. Publish rules Firestore terbaru di Firebase Console."
+            tips={[
+              'Buka Firebase Console → Firestore → Rules → Publish.',
+              'Fitur absensi & kelola anggota memerlukan rules aktif.',
+            ]}
           />
           <a
             href="https://console.firebase.google.com/project/absenforestbest/firestore/rules"

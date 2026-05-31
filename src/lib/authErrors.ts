@@ -30,7 +30,7 @@ export function getGoogleSignInErrorMessage(error: unknown): string {
       if (error instanceof Error && error.message) {
         return error.message;
       }
-      return 'Gagal masuk via Google. Coba lagi atau gunakan browser Chrome/Safari terbaru.';
+      return 'Login Google gagal. Tutup tab Google yang masih terbuka, lalu coba lagi.';
   }
 }
 

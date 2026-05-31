@@ -72,18 +72,18 @@ export function Alert({
   return (
     <div
       role="alert"
-      className={`w-full rounded-2xl border p-4 ${s.wrap} ${className}`}
+      className={`w-full rounded-2xl border p-4 sm:p-5 ${s.wrap} ${className}`}
     >
-      <div className="flex gap-3">
+      <div className="flex gap-3.5 sm:gap-4">
         <div className={`shrink-0 mt-0.5 ${s.icon}`}>{icons[variant]}</div>
         <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <p className={`text-sm font-semibold leading-snug ${s.title}`}>{title}</p>
+          <div className="flex items-start justify-between gap-3">
+            <p className={`text-sm sm:text-[15px] font-semibold leading-snug ${s.title}`}>{title}</p>
             {onDismiss && (
               <button
                 type="button"
                 onClick={onDismiss}
-                className="shrink-0 p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white/60 transition"
+                className="shrink-0 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white/60 transition"
                 aria-label="Tutup"
               >
                 <X className="w-4 h-4" />
@@ -91,13 +91,13 @@ export function Alert({
             )}
           </div>
           {message && (
-            <p className={`text-xs mt-1 leading-relaxed ${s.body}`}>{message}</p>
+            <p className={`text-sm mt-2 leading-relaxed ${s.body}`}>{message}</p>
           )}
           {tips && tips.length > 0 && (
-            <ul className={`mt-2.5 space-y-1.5 text-xs leading-relaxed ${s.tip}`}>
+            <ul className={`mt-3 space-y-2 text-sm leading-relaxed ${s.tip}`}>
               {tips.map((tip) => (
-                <li key={tip} className="flex gap-2">
-                  <span className="shrink-0 text-[10px] mt-0.5">•</span>
+                <li key={tip} className="flex gap-2.5">
+                  <span className="shrink-0 mt-1.5 w-1 h-1 rounded-full bg-current opacity-60" />
                   <span>{tip}</span>
                 </li>
               ))}

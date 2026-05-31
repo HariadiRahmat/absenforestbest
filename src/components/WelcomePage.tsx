@@ -13,12 +13,14 @@ import {
 } from 'lucide-react';
 import { Alert } from './ui/Alert';
 import { GoogleIcon } from './ui/GoogleIcon';
+import { parseAuthAlertMessage } from '../lib/friendlyErrors';
 
 interface WelcomePageProps {
   loginError: string | null;
   authError: string | null;
   onLogin: () => void;
   onRegister: () => void;
+  onDismissError?: () => void;
 }
 
 const services = [
@@ -34,7 +36,10 @@ const services = [
   },
 ];
 
-export function WelcomePage({ loginError, authError, onLogin, onRegister }: WelcomePageProps) {
+export function WelcomePage({ loginError, authError, onLogin, onRegister, onDismissError }: WelcomePageProps) {
+  const rawError = loginError || authError;
+  const errorDetail = parseAuthAlertMessage(rawError);
+
   return (
     <div id="scout-welcome-page" className="scout-welcome-shell">
       <header className="scout-welcome-hero">
@@ -85,13 +90,14 @@ export function WelcomePage({ loginError, authError, onLogin, onRegister }: Welc
               </p>
             </div>
 
-            {(loginError || authError) && (
+            {rawError && (
               <Alert
                 variant="error"
-                title="Gagal masuk"
-                message={loginError || authError || undefined}
-                tips={['Belum punya akun? Daftar dulu lalu tunggu konfirmasi Pembina.']}
-                className="mb-4"
+                title={errorDetail.title}
+                message={errorDetail.message}
+                tips={errorDetail.tips}
+                className="mb-5"
+                onDismiss={onDismissError}
               />
             )}
 

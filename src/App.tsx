@@ -58,6 +58,10 @@ function ScoutAppContent() {
         authError={authError}
         onLogin={handleGoogleLogin}
         onRegister={() => setPublicView('register')}
+        onDismissError={() => {
+          setLoginError(null);
+          clearAuthError();
+        }}
       />
     );
   }

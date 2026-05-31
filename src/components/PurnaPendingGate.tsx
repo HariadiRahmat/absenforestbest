@@ -33,9 +33,9 @@ export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
   };
 
   return (
-    <div className="min-h-screen bg-bento-bg flex flex-col justify-center py-8 px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
-      <div className="max-w-md w-full mx-auto scout-card p-6 sm:p-8 text-center">
-        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5 ${iconBg}`}>
+    <div className="min-h-screen bg-bento-bg flex flex-col justify-center py-10 px-4 pb-[max(2.5rem,env(safe-area-inset-bottom))]">
+      <div className="max-w-md w-full mx-auto scout-card p-6 sm:p-8 text-center space-y-6">
+        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto ${iconBg}`}>
           <Icon className={`w-8 h-8 ${iconColor}`} />
         </div>
 
@@ -62,25 +62,27 @@ export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
                 ? ['Tetap di halaman ini — tidak perlu logout.', 'Setelah disetujui, akun aktif otomatis.']
                 : ['Hubungi Pembina jika ada pertanyaan.']
           }
-          className="mb-6 text-left"
+          className="text-left"
         />
 
+        <div className="space-y-3">
         {(isPending || isApproved) && (
           <button
             type="button"
             onClick={handleRetry}
             disabled={retrying}
-            className="w-full scout-btn-google py-3 text-sm mb-3"
+            className="w-full scout-btn-google py-3.5 text-sm"
           >
             {retrying ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Perbarui Status
           </button>
         )}
 
-        <button type="button" onClick={logout} className="w-full scout-btn-secondary py-3 text-sm">
+        <button type="button" onClick={logout} className="w-full scout-btn-secondary py-3.5 text-sm">
           <LogOut className="w-4 h-4" />
           Keluar
         </button>
+        </div>
       </div>
     </div>
   );
