@@ -23,7 +23,7 @@ export interface MemberDirectoryProps {
   uniqueClasses: string[];
   onAdd: () => void;
   onEdit: (member: UserProfile) => void;
-  onDelete: (userId: string) => void;
+  onDelete: (member: UserProfile) => void;
   onToggleStatus: (member: UserProfile) => void;
   compact?: boolean;
   onView?: (member: UserProfile) => void;
@@ -257,7 +257,7 @@ export function MemberDirectory({
                       </button>
                       <button
                         type="button"
-                        onClick={() => onDelete(member.userId)}
+                        onClick={() => onDelete(member)}
                         className="p-1.5 hover:bg-rose-50 text-rose-700 transition rounded-lg bg-bento-soft border border-bento-border cursor-pointer"
                         title="Hapus"
                       >
@@ -297,7 +297,7 @@ function MemberCard({
   member: UserProfile;
   role: UserRole;
   onEdit: (m: UserProfile) => void;
-  onDelete: (userId: string) => void;
+  onDelete: (member: UserProfile) => void;
   onToggleStatus: (m: UserProfile) => void;
 }) {
   const avatarBg =
@@ -343,7 +343,7 @@ function MemberCard({
           <Edit2 className="w-3.5 h-3.5" />
           Ubah
         </button>
-        <button type="button" onClick={() => onDelete(member.userId)} className="scout-action-btn scout-action-btn-danger">
+        <button type="button" onClick={() => onDelete(member)} className="scout-action-btn scout-action-btn-danger">
           <Trash2 className="w-3.5 h-3.5" />
           Hapus
         </button>
@@ -390,7 +390,7 @@ function CompactPurnaRow({
   member: UserProfile;
   onView?: (m: UserProfile) => void;
   onEdit: (m: UserProfile) => void;
-  onDelete: (userId: string) => void;
+  onDelete: (member: UserProfile) => void;
   onToggleStatus: (m: UserProfile) => void;
 }) {
   return (
@@ -427,7 +427,7 @@ function CompactPurnaRow({
         </button>
         <button
           type="button"
-          onClick={() => onDelete(member.userId)}
+          onClick={() => onDelete(member)}
           className="p-1.5 hover:bg-rose-50 text-rose-700 transition rounded-lg cursor-pointer"
           title="Hapus"
         >

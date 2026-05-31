@@ -87,7 +87,15 @@ export function buildMemberDirectoryList(
   applyClassSquadFilters = false
 ): UserProfile[] {
   const seenEmails = new Set<string>();
+  const claimedEmails = new Set<string>();
   const list: UserProfile[] = [];
+
+  for (const user of users) {
+    claimedEmails.add(user.email.toLowerCase());
+  }
+  for (const entry of preRegistered) {
+    claimedEmails.add(entry.email.toLowerCase());
+  }
 
   for (const user of users) {
     if (user.role !== role) continue;
@@ -109,7 +117,7 @@ export function buildMemberDirectoryList(
     const appRole = app.approvedRole ?? UserRole.PURNA;
     if (appRole !== role) continue;
     const email = app.email.toLowerCase();
-    if (seenEmails.has(email)) continue;
+    if (seenEmails.has(email) || claimedEmails.has(email)) continue;
     seenEmails.add(email);
     list.push(approvedApplicationToProfile(app, appRole));
   }

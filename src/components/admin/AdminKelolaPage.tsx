@@ -9,8 +9,9 @@ import { PurnaProfileViewModal } from './PurnaProfileViewModal';
 import { buildMemberDirectoryList, isPreRegisteredUserId } from '../../lib/purnaDirectory';
 import { UserProfile, UserRole, UserStatus, PurnaRegistration, PreRegisteredMember } from '../../types';
 import { db, handleFirestoreError } from '../../lib/firebase';
-import { doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { stripUndefined } from '../../lib/firestoreUtils';
+import { deleteMemberRecords, syncRegistrationApprovedRole } from '../../lib/memberAdminOps';
 import { OperationType } from '../../types';
 
 export type AdminKelolaTab = 'crud_anggota' | 'crud_pembina' | 'crud_purna' | 'purna_docs';
@@ -200,6 +201,7 @@ export function AdminKelolaPage({
         });
       }
 
+      await syncRegistrationApprovedRole(emailKey, formRole);
       setShowMemberModal(false);
     } catch (err: unknown) {
       console.error(err);
@@ -207,17 +209,12 @@ export function AdminKelolaPage({
     }
   };
 
-  const handleDeleteMember = async (userId: string) => {
-    if (!window.confirm('Apakah Anda yakin ingin menghapus data anggota pramuka ini?')) return;
+  const handleDeleteMember = async (member: UserProfile) => {
+    if (!window.confirm(`Hapus data ${member.nama} (${member.email})?`)) return;
     try {
-      if (isPreRegisteredUserId(userId)) {
-        const email = userId.slice('pre:'.length);
-        await deleteDoc(doc(db, 'pre_registered', email));
-        return;
-      }
-      await deleteDoc(doc(db, 'users', userId));
+      await deleteMemberRecords(member, users);
     } catch (err) {
-      handleFirestoreError(err, OperationType.DELETE, `users/${userId}`);
+      handleFirestoreError(err, OperationType.DELETE, `member/${member.email}`);
     }
   };
 
