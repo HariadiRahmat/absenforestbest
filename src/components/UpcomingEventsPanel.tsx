@@ -18,12 +18,12 @@ import { UpcomingEvent } from '../types';
 import {
   formatEventDateLong,
   formatEventDateShort,
-  getCountdownText,
   getEventProximity,
   getUpcomingEventsSorted,
 } from '../lib/upcomingEvents';
 import { getTodayStr } from '../lib/dateUtils';
 import { useUpcomingEvents } from '../hooks/useUpcomingEvents';
+import { useCountdownReveal } from '../hooks/useCountdownReveal';
 
 function proximityIcon(tier: ReturnType<typeof getEventProximity>['tier']) {
   switch (tier) {
@@ -118,7 +118,31 @@ function FeaturedEventCard({
 }) {
   const proximity = getEventProximity(event.tanggal, todayStr);
   const Icon = proximityIcon(proximity.tier);
-  const countdown = getCountdownText(event, todayStr);
+  const dateLabel = formatEventDateShort(event.tanggal);
+  const shouldAnimateCountdown = proximity.daysLeft >= 2;
+  const animatedDays = useCountdownReveal(proximity.daysLeft, shouldAnimateCountdown);
+  const isAnimating = shouldAnimateCountdown && animatedDays !== proximity.daysLeft;
+
+  const badgeLabel =
+    proximity.tier === 'today'
+      ? 'Hari ini'
+      : proximity.tier === 'tomorrow'
+        ? 'Besok'
+        : `${animatedDays} hari lagi`;
+
+  const headline =
+    proximity.tier === 'today'
+      ? `Hari ini — ${event.title}`
+      : proximity.tier === 'tomorrow'
+        ? `Besok menuju ${dateLabel}`
+        : (
+          <>
+            <span className={`tabular-nums ${isAnimating ? 'inline-block transition-transform' : ''}`}>
+              {animatedDays}
+            </span>
+            {' '}hari lagi menuju {dateLabel}
+          </>
+        );
 
   return (
     <div className={`scout-card border-2 overflow-hidden ${proximity.accentClass}`}>
@@ -134,17 +158,26 @@ function FeaturedEventCard({
                 Kegiatan Terdekat
               </span>
               <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${proximity.badgeClass}`}>
-                {proximity.label}
+                {proximity.tier === 'today' || proximity.tier === 'tomorrow' ? (
+                  badgeLabel
+                ) : (
+                  <>
+                    <span className="tabular-nums">{animatedDays}</span>
+                    {' '}hari lagi
+                  </>
+                )}
               </span>
             </div>
 
             <p className="text-lg sm:text-xl font-bold text-bento-text leading-snug">
-              {countdown}
+              {headline}
             </p>
 
-            <h4 className="text-sm sm:text-base font-semibold text-bento-text mt-2">
-              {event.title}
-            </h4>
+            {proximity.tier !== 'today' && (
+              <h4 className="text-sm sm:text-base font-semibold text-bento-text mt-2">
+                {event.title}
+              </h4>
+            )}
 
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3 text-xs sm:text-sm text-bento-muted">
               <span className="inline-flex items-center gap-1.5">
