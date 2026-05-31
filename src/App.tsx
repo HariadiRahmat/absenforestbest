@@ -6,13 +6,13 @@
 import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { UnregisteredGate } from './components/UnregisteredGate';
-import { RegistrationLanding } from './components/RegistrationLanding';
 import { PurnaPendingGate } from './components/PurnaPendingGate';
 import { PurnaDashboard } from './components/PurnaDashboard';
 import { OnboardingWizard } from './components/OnboardingWizard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { AnggotaDashboard } from './components/AnggotaDashboard';
-import { WelcomePage } from './components/WelcomePage';
+import { LoginPage } from './components/auth/LoginPage';
+import { RegisterPage } from './components/auth/RegisterPage';
 import { UserRole, UserStatus } from './types';
 import { isRegistrationAuthGate } from './lib/authGate';
 import { needsOnboarding } from './lib/onboardingProfile';
@@ -32,6 +32,7 @@ function ScoutAppContent() {
       await signInWithGoogle();
     } catch (err) {
       setLoginError(getGoogleSignInErrorMessage(err));
+      throw err;
     }
   };
 
@@ -49,15 +50,20 @@ function ScoutAppContent() {
 
   if (!currentUser) {
     if (publicView === 'register') {
-      return <RegistrationLanding onBack={() => setPublicView('login')} />;
+      return (
+        <RegisterPage
+          onSwitchToLogin={() => setPublicView('login')}
+          onGoogleLogin={handleGoogleLogin}
+        />
+      );
     }
 
     return (
-      <WelcomePage
+      <LoginPage
         loginError={loginError}
         authError={authError}
-        onLogin={handleGoogleLogin}
-        onRegister={() => setPublicView('register')}
+        onSwitchToRegister={() => setPublicView('register')}
+        onGoogleLogin={handleGoogleLogin}
         onDismissError={() => {
           setLoginError(null);
           clearAuthError();

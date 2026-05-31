@@ -7,25 +7,31 @@ import React, { useState } from 'react';
 import { LogOut, ShieldAlert, UserPlus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from './ui/Alert';
-import { RegistrationLanding } from './RegistrationLanding';
+import { RegisterPage } from './auth/RegisterPage';
 
 export function UnregisteredGate() {
-  const { logout, currentUser, retryProfileSetup } = useAuth();
+  const { logout, currentUser, retryProfileSetup, signInWithGoogle } = useAuth();
   const [showRegister, setShowRegister] = useState(false);
+
+  const handleGoogleRegister = async () => {
+    await signInWithGoogle();
+  };
 
   if (showRegister) {
     return (
-      <RegistrationLanding
+      <RegisterPage
+        onSwitchToLogin={() => setShowRegister(false)}
         onBack={() => setShowRegister(false)}
         initialEmail={currentUser?.email ?? ''}
         lockEmail={Boolean(currentUser?.email)}
         onSubmitted={() => retryProfileSetup()}
+        onGoogleLogin={handleGoogleRegister}
       />
     );
   }
 
   return (
-    <div className="min-h-screen bg-bento-bg flex flex-col justify-center py-8 px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
+    <div className="min-h-screen bg-white flex flex-col justify-center py-8 px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
       <div className="max-w-md w-full mx-auto scout-card p-6 sm:p-8 text-center">
         <div className="w-16 h-16 rounded-2xl bg-bento-soft border border-bento-border flex items-center justify-center mx-auto mb-5">
           <ShieldAlert className="w-8 h-8 text-bento-primary" />

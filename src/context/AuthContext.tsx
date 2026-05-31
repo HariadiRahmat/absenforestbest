@@ -12,6 +12,10 @@ import {
   GoogleAuthProvider,
   signOut,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  updateProfile,
+  deleteUser,
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, updateDoc, onSnapshot, serverTimestamp, deleteDoc } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
@@ -34,6 +38,9 @@ interface AuthContextType {
   authError: string | null;
   clearAuthError: () => void;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmailPassword: (email: string, password: string) => Promise<void>;
+  registerWithEmailPassword: (email: string, password: string, nama: string) => Promise<void>;
+  submitPendingRegistration: (email: string, nama: string) => Promise<void>;
   logout: () => Promise<void>;
   retryProfileSetup: (options?: { silent?: boolean }) => Promise<void>;
   registerProfile: (nama: string, kelas: string, regu: string) => Promise<void>;
@@ -54,6 +61,29 @@ const BOOTSTRAP_ADMIN_EMAILS = new Set(
 function isBootstrapAdmin(email: string | null | undefined): boolean {
   if (!email) return false;
   return BOOTSTRAP_ADMIN_EMAILS.has(email.toLowerCase());
+}
+
+async function assertRegistrationAvailable(emailKey: string): Promise<void> {
+  const regRef = doc(db, 'purna_registrations', emailKey);
+  const existingSnap = await getDoc(regRef);
+  if (!existingSnap.exists()) return;
+
+  const existingStatus = String(existingSnap.data()?.approvalStatus ?? 'pending').toLowerCase();
+  if (existingStatus === 'pending') {
+    throw new Error('Email ini sudah terdaftar dan menunggu konfirmasi Pembina.');
+  }
+  if (existingStatus === 'approved') {
+    throw new Error('Email sudah disetujui. Silakan login menggunakan email tersebut.');
+  }
+}
+
+async function writePendingRegistration(emailKey: string, nama: string): Promise<void> {
+  await setDoc(doc(db, 'purna_registrations', emailKey), {
+    email: emailKey,
+    nama: nama.trim(),
+    approvalStatus: PurnaApprovalStatus.PENDING,
+    submittedAt: serverTimestamp(),
+  });
 }
 
 async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnType<typeof doc>): Promise<boolean> {
@@ -364,6 +394,57 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const signInWithEmailPassword = async (email: string, password: string) => {
+    const emailKey = email.trim().toLowerCase();
+    await signInWithEmailAndPassword(auth, emailKey, password);
+  };
+
+  const submitPendingRegistration = async (email: string, nama: string) => {
+    const emailKey = email.trim().toLowerCase();
+    if (!emailKey.includes('@')) throw new Error('Format email tidak valid.');
+    if (!nama.trim()) throw new Error('Nama lengkap wajib diisi.');
+
+    try {
+      await assertRegistrationAvailable(emailKey);
+      await writePendingRegistration(emailKey, nama);
+    } catch (error) {
+      if (error instanceof FirebaseError && error.code === 'permission-denied') {
+        throw new Error('Akses ditolak. Publish firestore.rules terbaru di Firebase Console.');
+      }
+      throw error;
+    }
+  };
+
+  const registerWithEmailPassword = async (email: string, password: string, nama: string) => {
+    const emailKey = email.trim().toLowerCase();
+    if (!emailKey.includes('@')) throw new Error('Format email tidak valid.');
+    if (!nama.trim()) throw new Error('Nama lengkap wajib diisi.');
+
+    await assertRegistrationAvailable(emailKey);
+
+    let createdUser: FirebaseUser | null = null;
+    try {
+      const credential = await createUserWithEmailAndPassword(auth, emailKey, password);
+      createdUser = credential.user;
+      if (nama.trim()) {
+        await updateProfile(credential.user, { displayName: nama.trim() });
+      }
+      await writePendingRegistration(emailKey, nama);
+    } catch (error) {
+      if (createdUser) {
+        try {
+          await deleteUser(createdUser);
+        } catch (cleanupErr) {
+          console.warn('Failed to rollback auth user after registration error:', cleanupErr);
+        }
+      }
+      if (error instanceof FirebaseError && error.code === 'permission-denied') {
+        throw new Error('Akses ditolak. Publish firestore.rules terbaru di Firebase Console.');
+      }
+      throw error;
+    }
+  };
+
   const logout = async () => {
     try {
       activeProfileUidRef.current = null;
@@ -539,6 +620,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         authError,
         clearAuthError: () => setAuthError(null),
         signInWithGoogle,
+        signInWithEmailPassword,
+        registerWithEmailPassword,
+        submitPendingRegistration,
         logout,
         retryProfileSetup,
         registerProfile,

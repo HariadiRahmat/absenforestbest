@@ -64,3 +64,37 @@ export function shouldFallbackToRedirect(error: unknown): boolean {
     'auth/internal-error',
   ].includes(error.code);
 }
+
+export function getEmailAuthErrorMessage(error: unknown): string {
+  const code = error instanceof FirebaseError ? error.code : '';
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+
+  switch (code) {
+    case 'auth/invalid-email':
+      return 'Format email tidak valid.';
+    case 'auth/user-disabled':
+      return 'Akun ini dinonaktifkan. Hubungi Pembina.';
+    case 'auth/user-not-found':
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return 'Email atau password salah.';
+    case 'auth/email-already-in-use':
+      return 'Email sudah terdaftar. Coba login atau gunakan email lain.';
+    case 'auth/weak-password':
+      return 'Password terlalu lemah. Gunakan kombinasi huruf, angka, dan simbol.';
+    case 'auth/operation-not-allowed':
+      return 'Login email/password belum diaktifkan di Firebase. Aktifkan Email/Password di Authentication → Sign-in method.';
+    case 'auth/too-many-requests':
+      return 'Terlalu banyak percobaan. Tunggu beberapa menit lalu coba lagi.';
+    case 'auth/network-request-failed':
+      return 'Koneksi internet bermasalah. Periksa jaringan lalu coba lagi.';
+    case 'auth/account-exists-with-different-credential':
+      return 'Email ini sudah terdaftar dengan metode login lain (misalnya Google).';
+    default:
+      if (message.includes('permission-denied')) {
+        return 'Akses ditolak. Publish firestore.rules terbaru di Firebase Console.';
+      }
+      if (error instanceof Error && error.message) return error.message;
+      return 'Autentikasi gagal. Periksa data Anda lalu coba lagi.';
+  }
+}
