@@ -108,8 +108,8 @@ export function GeofenceSettings() {
   };
 
   return (
-    <div className="scout-card p-6 max-w-2xl">
-      <div className="flex items-start justify-between gap-4 mb-6">
+    <div className="scout-card p-4 sm:p-6 w-full max-w-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-2xl bg-bento-accent flex items-center justify-center shrink-0">
             <MapPin className="w-5 h-5 text-bento-dark" />

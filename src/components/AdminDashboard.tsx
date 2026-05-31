@@ -23,6 +23,7 @@ import { UserProfile, AttendanceRecord, QRCodeConfig, UserRole, UserStatus, Atte
 import { QRGenerator } from './QRGenerator';
 import { GeofenceSettings } from './GeofenceSettings';
 import { Alert } from './ui/Alert';
+import { TabNav } from './ui/TabNav';
 import {
   Users,
   QrCode,
@@ -44,7 +45,14 @@ import {
   BarChart2
 } from 'lucide-react';
 
-function formatHeaderDate() {
+function formatHeaderDate(short = false) {
+  if (short) {
+    return new Date().toLocaleDateString('id-ID', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  }
   return new Date().toLocaleDateString('id-ID', {
     weekday: 'long',
     day: 'numeric',
@@ -338,10 +346,10 @@ export function AdminDashboard() {
   });
 
   return (
-    <div id="scout-admin-dashboard-container" className="min-h-screen bg-bento-bg text-bento-text pb-20">
+    <div id="scout-admin-dashboard-container" className="min-h-screen bg-bento-bg text-bento-text pb-8 sm:pb-12">
 
       {rulesError && (
-        <div className="max-w-6xl mx-auto px-4 pt-4">
+        <div className="scout-page pt-4">
           <Alert
             variant="error"
             title="Firestore Rules belum aktif"
@@ -359,90 +367,79 @@ export function AdminDashboard() {
         </div>
       )}
       
-      {/* Immersive Bento Page Header & Stats Row */}
-      <div className="max-w-6xl mx-auto px-4 pt-6">
-        {/* Top Header Card */}
-        <header className="scout-card flex flex-col md:flex-row justify-between items-start md:items-center px-6 py-5 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
+      <div className="scout-page max-w-6xl pt-4 sm:pt-6">
+        <header className="scout-card flex flex-col gap-3 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
               <Users className="w-5 h-5 text-bento-dark" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Control Panel</p>
-              <h1 className="text-xl font-bold text-bento-text">{userProfile?.nama || 'Pembina'}</h1>
-              <p className="text-sm text-bento-muted mt-0.5">{formatHeaderDate()}</p>
+              <h1 className="text-lg sm:text-xl font-bold text-bento-text truncate">{userProfile?.nama || 'Pembina'}</h1>
+              <p className="text-xs sm:text-sm text-bento-muted mt-0.5">
+                <span className="sm:hidden">{formatHeaderDate(true)}</span>
+                <span className="hidden sm:inline">{formatHeaderDate()}</span>
+              </p>
             </div>
           </div>
           <button
             id="btn-scout-header-report"
             onClick={handleRotateQR}
-            className="scout-btn-primary text-sm py-2.5 px-5 shrink-0"
+            className="scout-btn-primary w-full sm:w-auto sm:self-end text-sm py-2.5 px-5 shrink-0"
           >
             <Sparkles className="w-4 h-4" />
             Rotate Token
           </button>
         </header>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-5">
-          <div className="scout-card p-5 min-h-[110px]">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mt-4 sm:mt-5">
+          <div className="scout-card p-4 sm:p-5 min-h-[96px] sm:min-h-[110px]">
             <div className="w-8 h-8 rounded-xl bg-bento-accent flex items-center justify-center mb-3">
               <CheckCircle className="w-4 h-4 text-bento-dark" />
             </div>
-            <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Hadir Hari Ini</p>
-            <h2 className="text-2xl font-bold mt-1 text-bento-text">
-              {loggedTodayCount} <span className="text-sm font-medium text-bento-muted">/ {totalScoutsCount}</span>
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide truncate">Hadir</p>
+            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">
+              {loggedTodayCount} <span className="text-xs sm:text-sm font-medium text-bento-muted">/ {totalScoutsCount}</span>
             </h2>
           </div>
 
-          <div className="scout-card p-5 min-h-[110px]">
-            <div className="w-8 h-8 rounded-xl bg-bento-soft flex items-center justify-center mb-3">
+          <div className="scout-card p-4 sm:p-5 min-h-[96px] sm:min-h-[110px]">
+            <div className="w-8 h-8 rounded-xl bg-bento-soft flex items-center justify-center mb-2 sm:mb-3">
               <HelpCircle className="w-4 h-4 text-bento-muted" />
             </div>
-            <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Belum Absen</p>
-            <h2 className="text-2xl font-bold mt-1 text-bento-text">{missingTodayCount}</h2>
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Belum Absen</p>
+            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">{missingTodayCount}</h2>
           </div>
 
-          <div className="scout-card p-5 min-h-[110px]">
-            <div className="w-8 h-8 rounded-xl bg-bento-highlight flex items-center justify-center mb-3">
+          <div className="scout-card p-4 sm:p-5 min-h-[96px] sm:min-h-[110px]">
+            <div className="w-8 h-8 rounded-xl bg-bento-highlight flex items-center justify-center mb-2 sm:mb-3">
               <Users className="w-4 h-4 text-bento-primary" />
             </div>
-            <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Total Anggota</p>
-            <h2 className="text-2xl font-bold mt-1 text-bento-text">{totalScoutsCount}</h2>
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Total Anggota</p>
+            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">{totalScoutsCount}</h2>
           </div>
 
-          <div className="scout-card p-5 min-h-[110px]">
-            <div className="w-8 h-8 rounded-xl bg-bento-highlight flex items-center justify-center mb-3">
+          <div className="scout-card p-4 sm:p-5 min-h-[96px] sm:min-h-[110px]">
+            <div className="w-8 h-8 rounded-xl bg-bento-highlight flex items-center justify-center mb-2 sm:mb-3">
               <BarChart2 className="w-4 h-4 text-bento-primary" />
             </div>
-            <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Rasio Kehadiran</p>
-            <h2 className="text-2xl font-bold mt-1 text-bento-text">{attendanceRate}%</h2>
+            <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Rasio</p>
+            <h2 className="text-xl sm:text-2xl font-bold mt-1 text-bento-text">{attendanceRate}%</h2>
           </div>
         </div>
-      </div>
 
-      {/* Main interactive directory navigation and contents panels */}
-      <div className="max-w-6xl mx-auto px-4 mt-6">
-        
-        <div className="scout-card p-2 flex flex-wrap gap-1 mb-6">
-          {([
-            { id: 'admin-tab-qr', key: 'qr_monitor' as const, label: 'QR & Live', icon: QrCode },
-            { id: 'admin-tab-crud', key: 'crud_anggota' as const, label: 'Anggota', icon: Users },
-            { id: 'admin-tab-rekap', key: 'rekap' as const, label: 'Rekap', icon: FileSpreadsheet },
-            { id: 'admin-tab-geofence', key: 'geofence' as const, label: 'GPS', icon: MapPin },
-          ]).map(({ id, key, label, icon: Icon }) => (
-            <button
-              key={key}
-              id={id}
-              onClick={() => setAdminTab(key)}
-              className={`scout-nav-pill flex-1 justify-center ${
-                adminTab === key ? 'scout-nav-pill-active' : 'scout-nav-pill-inactive'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </button>
-          ))}
-        </div>
+        <div className="mt-5 sm:mt-6">
+          <TabNav
+            tabs={[
+              { id: 'admin-tab-qr', key: 'qr_monitor', label: 'QR & Live', icon: QrCode },
+              { id: 'admin-tab-crud', key: 'crud_anggota', label: 'Anggota', icon: Users },
+              { id: 'admin-tab-rekap', key: 'rekap', label: 'Rekap', icon: FileSpreadsheet },
+              { id: 'admin-tab-geofence', key: 'geofence', label: 'GPS', icon: MapPin },
+            ]}
+            active={adminTab}
+            onChange={setAdminTab}
+            columns={4}
+          />
 
         {/* Tab contents panel layout */}
         <div className="space-y-6">
@@ -463,7 +460,7 @@ export function AdminDashboard() {
               </div>
 
               {/* Real-time incoming attendance logger monitor */}
-              <div className="lg:col-span-2 bg-white rounded-[32px] border border-bento-border p-6 shadow-sm flex flex-col min-h-[480px]">
+              <div className="lg:col-span-2 scout-card p-4 sm:p-6 flex flex-col min-h-[360px] sm:min-h-[480px]">
                 <div className="flex items-center justify-between mb-4 pb-2 border-b border-bento-soft">
                   <div className="flex items-center gap-2">
                     <Clock className="w-5 h-5 text-bento-primary" />
@@ -471,9 +468,9 @@ export function AdminDashboard() {
                       Live Absensi Masuk ({attendanceToday.length})
                     </h3>
                   </div>
-                  <span className="flex items-center gap-1.5 text-[10px] text-bento-primary bg-bento-soft px-2.5 py-1 rounded-full font-bold">
+                  <span className="hidden sm:flex items-center gap-1.5 text-[10px] text-bento-primary bg-bento-soft px-2.5 py-1 rounded-full font-bold">
                     <span className="w-1.5 h-1.5 bg-bento-primary rounded-full animate-ping" />
-                    REALTIME STREAMING ACTIVE
+                    LIVE
                   </span>
                 </div>
 
@@ -546,7 +543,7 @@ export function AdminDashboard() {
 
           {/* TAB 2: ACTIVE SCOUTS DIRECTORY (CRUD) */}
           {adminTab === 'crud_anggota' && (
-            <div className="bg-white rounded-[32px] border border-bento-border p-6 shadow-sm">
+            <div className="scout-card p-4 sm:p-6">
               
               {/* Toolbar & filters row */}
               <div className="flex flex-col gap-3 mb-6">
@@ -613,8 +610,60 @@ export function AdminDashboard() {
                   Tidak ditemukan data scout yang cocok dengan pencarian / filter Anda.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse">
+                <>
+                  {/* Mobile card list */}
+                  <div className="md:hidden space-y-3">
+                    {filteredMembers.map((member) => (
+                      <div key={member.userId} className="border border-bento-border rounded-2xl p-4 bg-bento-soft/30">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-bold text-bento-text truncate">{member.nama}</p>
+                            <p className="text-[11px] text-bento-muted font-mono truncate mt-0.5">{member.email}</p>
+                          </div>
+                          <button
+                            id={`toggle-status-mobile-${member.userId}`}
+                            onClick={() => handleToggleStatus(member)}
+                            className="shrink-0 text-[10px] font-semibold"
+                          >
+                            {member.status === UserStatus.AKTIF ? (
+                              <span className="text-lime-800 bg-lime-50 px-2 py-1 rounded-full border border-lime-200">Aktif</span>
+                            ) : (
+                              <span className="text-bento-muted bg-white px-2 py-1 rounded-full border border-bento-border">Nonaktif</span>
+                            )}
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-2 mt-3 text-xs text-bento-muted">
+                          <span>Kelas {member.kelas}</span>
+                          <span>·</span>
+                          <span>Regu {member.regu}</span>
+                          <span>·</span>
+                          <span className="font-semibold">{member.role === UserRole.ADMIN ? 'Pembina' : 'Anggota'}</span>
+                        </div>
+                        <div className="flex gap-2 mt-3 pt-3 border-t border-bento-border">
+                          <button
+                            id={`edit-member-mobile-${member.userId}`}
+                            onClick={() => handleOpenEditModal(member)}
+                            className="flex-1 scout-btn-secondary text-xs py-2"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            Ubah
+                          </button>
+                          <button
+                            id={`delete-member-mobile-${member.userId}`}
+                            onClick={() => handleDeleteMember(member.userId)}
+                            className="flex-1 scout-btn-secondary text-xs py-2 text-rose-700 border-rose-100"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            Hapus
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Desktop table */}
+                  <div className="hidden md:block overflow-x-auto -mx-2 sm:mx-0">
+                  <table className="w-full text-left border-collapse min-w-[640px]">
                     <thead>
                       <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                         <th className="p-4 rounded-l-2xl">Nama & Email</th>
@@ -684,14 +733,15 @@ export function AdminDashboard() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                  </div>
+                </>
               )}
             </div>
           )}
 
           {/* TAB 3: STATS & HISTORICAL LOGS (REKAP) */}
           {adminTab === 'rekap' && (
-            <div className="bg-white rounded-[32px] border border-bento-border p-6 shadow-sm">
+            <div className="scout-card p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-6 pb-2 border-b border-bento-soft">
                 <BarChart2 className="w-5 h-5 text-bento-primary" />
                 <h3 className="font-sans text-base font-extrabold text-bento-text">
@@ -714,10 +764,12 @@ export function AdminDashboard() {
                         const count = checkinsByDate[date];
                         const countPercentage = totalScoutsCount > 0 ? Math.round((count / totalScoutsCount) * 100) : 0;
                         return (
-                          <div key={date} className="p-4 bg-slate-50 border border-slate-100 rounded-2xl">
-                            <div className="flex items-center justify-between text-xs mb-1.5">
-                              <span className="font-extrabold text-slate-700">{date}</span>
-                              <span className="font-bold text-emerald-950 font-mono">{count} / {totalScoutsCount} Anggota ({countPercentage}%)</span>
+                          <div key={date} className="p-4 bg-bento-soft border border-bento-border rounded-2xl">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 text-xs mb-1.5">
+                              <span className="font-bold text-bento-text">{date}</span>
+                              <span className="font-semibold text-bento-muted font-mono text-[11px] sm:text-xs">
+                                {count} / {totalScoutsCount} ({countPercentage}%)
+                              </span>
                             </div>
                             <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                               <div className="bg-emerald-600 h-full rounded-full transition-all" style={{ width: `${Math.min(100, countPercentage)}%` }} />
@@ -783,12 +835,13 @@ export function AdminDashboard() {
 
           {adminTab === 'geofence' && <GeofenceSettings />}
         </div>
+        </div>
       </div>
 
       {/* CRUD MODAL FOR MEMBER CREATION / CORRECTION */}
       {showMemberModal && (
-        <div id="scout-member-modal-overlay" className="fixed inset-0 bg-slate-900/60 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-xl border border-emerald-50 text-left shrink-0">
+        <div id="scout-member-modal-overlay" className="fixed inset-0 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-xl border border-bento-border text-left max-h-[92dvh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
               <h3 className="font-sans text-base font-extrabold text-slate-800">
                 {isEditMode ? 'Ubah Data Anggota Pramuka' : 'Pre-Register Anggota Baru'}

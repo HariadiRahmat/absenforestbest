@@ -41,9 +41,9 @@ function ScoutAppContent() {
 
   if (!currentUser) {
     return (
-      <div id="scout-gate-login" className="min-h-screen bg-bento-bg flex flex-col justify-center py-10 px-4">
+      <div id="scout-gate-login" className="min-h-screen bg-bento-bg flex flex-col justify-center py-8 sm:py-10 px-4">
         <div className="max-w-md w-full mx-auto scout-card overflow-hidden">
-          <div className="px-8 pt-10 pb-6 text-center">
+          <div className="px-5 sm:px-8 pt-8 sm:pt-10 pb-6 text-center">
             <div className="w-14 h-14 bg-bento-accent rounded-2xl flex items-center justify-center mx-auto mb-5">
               <Compass className="w-7 h-7 text-bento-dark" />
             </div>
@@ -56,7 +56,7 @@ function ScoutAppContent() {
             </p>
           </div>
 
-          <div className="px-8 pb-8 space-y-4">
+          <div className="px-5 sm:px-8 pb-6 sm:pb-8 space-y-4">
             <div className="grid gap-3">
               {[
                 { icon: QrCode, title: 'QR Dinamis', desc: 'Token harian yang berganti otomatis setiap tengah malam.' },
@@ -96,7 +96,7 @@ function ScoutAppContent() {
             </button>
           </div>
 
-          <div className="px-8 py-4 bg-bento-soft border-t border-bento-border text-center">
+          <div className="px-5 sm:px-8 py-4 bg-bento-soft border-t border-bento-border text-center">
             <span className="text-xs text-bento-muted">ForestBest Scout v1.2.0</span>
           </div>
         </div>
@@ -131,19 +131,19 @@ function ScoutAppContent() {
   if (userProfile && userProfile.role === UserRole.ADMIN) {
     return (
       <div id="scout-root-admin" className="min-h-screen bg-bento-bg">
-        <div className="bg-white border-b border-bento-border px-4 py-3 sticky top-0 z-50">
-          <div className="max-w-6xl mx-auto flex justify-between items-center">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-bento-accent flex items-center justify-center">
+        <div className="bg-white border-b border-bento-border px-4 py-2.5 sm:py-3 sticky top-0 z-50 safe-area-inset-top">
+          <div className="scout-page max-w-6xl flex justify-between items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-8 h-8 rounded-xl bg-bento-accent flex items-center justify-center shrink-0">
                 <Compass className="w-4 h-4 text-bento-dark" />
               </div>
-              <div>
-                <p className="text-sm font-bold text-bento-text">ForestBest Scout</p>
-                <p className="text-[11px] text-bento-muted">Panel Pembina</p>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-bento-text truncate">ForestBest Scout</p>
+                <p className="text-[10px] sm:text-[11px] text-bento-muted truncate">Panel Pembina</p>
               </div>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-bento-muted hidden sm:inline">{userProfile.nama}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-xs sm:text-sm text-bento-muted hidden md:inline max-w-[120px] truncate">{userProfile.nama}</span>
               <button id="btn-admin-inner-logout" onClick={logout} className="scout-btn-secondary text-xs py-2 px-3">
                 Keluar
               </button>

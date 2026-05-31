@@ -39,9 +39,9 @@ export function ProfileForm() {
     'w-full pl-10 pr-4 py-3 border border-bento-border focus:outline-none focus:ring-2 focus:ring-bento-primary/30 focus:border-bento-primary rounded-2xl text-sm bg-bento-soft placeholder-bento-muted';
 
   return (
-    <div id="scout-registration-flow" className="min-h-screen bg-bento-bg flex flex-col justify-center py-12 px-4">
+    <div id="scout-registration-flow" className="min-h-screen bg-bento-bg flex flex-col justify-center py-8 sm:py-12 px-4">
       <div className="max-w-md w-full mx-auto scout-card overflow-hidden">
-        <div className="px-8 pt-10 pb-6 text-center border-b border-bento-border">
+        <div className="px-5 sm:px-8 pt-8 sm:pt-10 pb-6 text-center border-b border-bento-border">
           <div className="w-14 h-14 bg-bento-accent rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Compass className="w-7 h-7 text-bento-dark" />
           </div>
@@ -51,7 +51,7 @@ export function ProfileForm() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 space-y-5">
+        <form onSubmit={handleSubmit} className="p-5 sm:p-8 space-y-5">
           {errorMsg && (
             <Alert variant="error" title="Gagal menyimpan" message={errorMsg} />
           )}
@@ -84,7 +84,7 @@ export function ProfileForm() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label htmlFor="reg-class-field" className="text-[11px] font-semibold text-bento-muted uppercase tracking-wide">
                 Kelas

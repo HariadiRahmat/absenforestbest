@@ -15,6 +15,7 @@ import { QRScanner, AttendancePayload } from './QRScanner';
 import { parseAttendanceError } from '../lib/attendanceErrors';
 import type { FriendlyError } from './ui/Alert';
 import { Alert } from './ui/Alert';
+import { TabNav } from './ui/TabNav';
 import { getTodayStr } from '../lib/dateUtils';
 import {
   Compass,
@@ -152,73 +153,63 @@ export function AnggotaDashboard() {
   }
 
   return (
-    <div id="scout-anggota-dashboard-wrapper" className="min-h-screen bg-bento-bg text-bento-text pb-20">
-      <div className="max-w-4xl mx-auto px-4 pt-6">
-        <header className="scout-card flex flex-row justify-between items-center px-6 py-5 gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
+    <div id="scout-anggota-dashboard-wrapper" className="min-h-screen bg-bento-bg text-bento-text pb-8 sm:pb-12">
+      <div className="scout-page max-w-4xl pt-4 sm:pt-6">
+        <header className="scout-card flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-bento-accent rounded-2xl flex items-center justify-center shrink-0">
               <Compass className="w-5 h-5 text-bento-dark" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted">Halo,</p>
-              <h1 className="text-xl font-bold text-bento-text">{userProfile?.nama}</h1>
-              <p className="text-sm text-bento-muted mt-0.5">Regu {userProfile?.regu} · Kelas {userProfile?.kelas}</p>
+              <h1 className="text-lg sm:text-xl font-bold text-bento-text truncate">{userProfile?.nama}</h1>
+              <p className="text-xs sm:text-sm text-bento-muted mt-0.5 truncate">
+                Regu {userProfile?.regu} · Kelas {userProfile?.kelas}
+              </p>
             </div>
           </div>
           <button
             id="scout-btn-logout-header"
             onClick={logout}
-            className="scout-btn-secondary text-xs py-2.5 px-4"
+            className="scout-btn-secondary w-full sm:w-auto text-xs py-2.5 px-4 shrink-0"
           >
             <LogOut className="w-4 h-4" />
             Keluar
           </button>
         </header>
 
-        <div className="grid grid-cols-2 gap-4 mt-5">
-          <div className="scout-card p-5 flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-bento-accent flex items-center justify-center shrink-0">
-              <Flame className="w-5 h-5 text-bento-dark" />
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 mt-4 sm:mt-5">
+          <div className="scout-card p-4 sm:p-5 flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-bento-accent flex items-center justify-center shrink-0">
+              <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-bento-dark" />
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Streak Kehadiran</p>
-              <p className="text-2xl font-bold text-bento-text mt-0.5">{streakCount} hari</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide truncate">Streak</p>
+              <p className="text-xl sm:text-2xl font-bold text-bento-text mt-0.5">{streakCount} hari</p>
             </div>
           </div>
-          <div className="scout-card p-5 flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-bento-highlight flex items-center justify-center shrink-0">
-              <Calendar className="w-5 h-5 text-bento-primary" />
+          <div className="scout-card p-4 sm:p-5 flex items-center gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-bento-highlight flex items-center justify-center shrink-0">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-bento-primary" />
             </div>
-            <div>
-              <p className="text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Hari Ini</p>
-              <p className="text-sm font-bold text-bento-text mt-0.5">{todayStr}</p>
+            <div className="min-w-0">
+              <p className="text-[10px] sm:text-[11px] font-semibold uppercase text-bento-muted tracking-wide">Hari Ini</p>
+              <p className="text-xs sm:text-sm font-bold text-bento-text mt-0.5 truncate">{todayStr}</p>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Dashboard Interactive Scaffold */}
-      <div className="max-w-4xl mx-auto px-4 mt-6">
-        
-        <div className="scout-card p-2 flex flex-wrap gap-1 mb-6">
-          {([
-            { id: 'tab-btn-absen', key: 'absen' as const, label: 'Absensi', icon: QrCode },
-            { id: 'tab-btn-riwayat', key: 'riwayat' as const, label: 'Riwayat', icon: History },
-            { id: 'tab-btn-profil', key: 'profil' as const, label: 'Profil', icon: User },
-          ]).map(({ id, key, label, icon: Icon }) => (
-            <button
-              key={key}
-              id={id}
-              onClick={() => setActiveTab(key)}
-              className={`scout-nav-pill flex-1 justify-center ${
-                activeTab === key ? 'scout-nav-pill-active' : 'scout-nav-pill-inactive'
-              }`}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </button>
-          ))}
-        </div>
+        <div className="mt-5 sm:mt-6">
+          <TabNav
+            tabs={[
+              { id: 'tab-btn-absen', key: 'absen', label: 'Absensi', icon: QrCode },
+              { id: 'tab-btn-riwayat', key: 'riwayat', label: 'Riwayat', icon: History },
+              { id: 'tab-btn-profil', key: 'profil', label: 'Profil', icon: User },
+            ]}
+            active={activeTab}
+            onChange={setActiveTab}
+            columns={3}
+          />
 
         {/* Tab content cards container */}
         <div className="space-y-6">
@@ -287,7 +278,7 @@ export function AnggotaDashboard() {
 
           {/* TAB 2: RIWAYAT KEHADIRAN */}
           {activeTab === 'riwayat' && (
-            <div className="scout-card p-6">
+            <div className="scout-card p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-5">
                 <History className="w-5 h-5 text-bento-primary" />
                 <h3 className="text-base font-bold text-bento-text">Riwayat Kehadiran</h3>
@@ -336,7 +327,7 @@ export function AnggotaDashboard() {
           )}
 
           {activeTab === 'profil' && (
-            <div className="scout-card p-6">
+            <div className="scout-card p-4 sm:p-6">
               <div className="flex items-center gap-2 mb-4">
                 <User className="w-5 h-5 text-bento-primary" />
                 <h3 className="font-sans text-base font-extrabold text-bento-text">Kelola Informasi Profil</h3>
@@ -356,7 +347,7 @@ export function AnggotaDashboard() {
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Kelas</label>
                       <input
@@ -446,6 +437,7 @@ export function AnggotaDashboard() {
               )}
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

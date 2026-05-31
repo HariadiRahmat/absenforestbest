@@ -200,7 +200,7 @@ export function QRScanner({
   const withinGeofence = geofence ? isWithinGeofence(geofence, gpsCoords.lat, gpsCoords.lng) : null;
 
   return (
-    <div id="scout-scanner-container" className="scout-card p-6 max-w-md mx-auto">
+    <div id="scout-scanner-container" className="scout-card p-4 sm:p-6 w-full">
       <div className="flex items-center gap-3 mb-5">
         <div className="w-10 h-10 rounded-2xl bg-bento-accent flex items-center justify-center">
           <QrCode className="w-5 h-5 text-bento-dark" />
