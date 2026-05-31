@@ -46,6 +46,26 @@ export interface UserProfile {
   profileComplete?: boolean;
 }
 
+/** Pre-register entry before first Google login */
+export interface PreRegisteredMember {
+  email: string;
+  nama: string;
+  kelas: string;
+  regu: string;
+  status: UserStatus;
+  role: UserRole;
+  createdAt?: unknown;
+  tanggalLahir?: string;
+  alamat?: string;
+  agama?: string;
+  pendidikanSd?: string;
+  pendidikanSmp?: string;
+  pendidikanSma?: string;
+  pendidikanKuliah?: string;
+  statusPerkawinan?: string;
+  profileComplete?: boolean;
+}
+
 /** Link dokumentasi kegiatan untuk Purna — disimpan di settings/purna_links */
 export interface PurnaDocumentationLink {
   id: string;

@@ -6,7 +6,8 @@ import { PurnaApplicationsPanel } from '../PurnaApplicationsPanel';
 import { PurnaLinksSettings } from '../PurnaLinksSettings';
 import { MemberCrudModal } from './MemberCrudModal';
 import { filterUsersByRole } from '../../lib/filterUsers';
-import { UserProfile, UserRole, UserStatus } from '../../types';
+import { buildPurnaDirectoryList, isPreRegisteredUserId } from '../../lib/purnaDirectory';
+import { UserProfile, UserRole, UserStatus, PurnaRegistration, PreRegisteredMember } from '../../types';
 import { db, handleFirestoreError } from '../../lib/firebase';
 import { doc, setDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { stripUndefined } from '../../lib/firestoreUtils';
@@ -18,10 +19,21 @@ interface AdminKelolaPageProps {
   tab: AdminKelolaTab;
   onTabChange: (tab: AdminKelolaTab) => void;
   users: UserProfile[];
+  preRegistered: PreRegisteredMember[];
+  purnaApplications: PurnaRegistration[];
   loadingMembers: boolean;
+  loadingPurna: boolean;
 }
 
-export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: AdminKelolaPageProps) {
+export function AdminKelolaPage({
+  tab,
+  onTabChange,
+  users,
+  preRegistered,
+  purnaApplications,
+  loadingMembers,
+  loadingPurna,
+}: AdminKelolaPageProps) {
   const [showMemberModal, setShowMemberModal] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedMemberId, setSelectedMemberId] = useState<string | null>(null);
@@ -61,14 +73,14 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
     false
   );
 
-  const filteredPurna = filterUsersByRole(
+  const filteredPurna = buildPurnaDirectoryList(
     users,
-    UserRole.PURNA,
-    memberSearchPurna,
-    'ALL',
-    'ALL',
-    false
+    preRegistered,
+    purnaApplications,
+    memberSearchPurna
   );
+
+  const loadingPurnaDirectory = loadingMembers || loadingPurna;
 
   const handleOpenCreateModal = (role: UserRole) => {
     setIsEditMode(false);
@@ -136,19 +148,34 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
       const emailKey = formEmail.trim().toLowerCase();
 
       if (isEditMode && selectedMemberId) {
-        const userRef = doc(db, 'users', selectedMemberId);
-        const existingData = users.find((u) => u.userId === selectedMemberId);
-        await setDoc(userRef, stripUndefined({
-          ...existingData,
-          userId: selectedMemberId,
-          nama: resolvedName,
-          email: emailKey,
-          kelas: resolvedClass,
-          regu: resolvedSquad,
-          status: formStatus,
-          role: formRole,
-          createdAt: existingData?.createdAt || serverTimestamp(),
-        }));
+        if (isPreRegisteredUserId(selectedMemberId)) {
+          const existingPre = preRegistered.find((p) => p.email === emailKey)
+            ?? users.find((u) => u.userId === selectedMemberId);
+          await setDoc(doc(db, 'pre_registered', emailKey), stripUndefined({
+            ...existingPre,
+            nama: resolvedName,
+            email: emailKey,
+            kelas: resolvedClass,
+            regu: resolvedSquad,
+            status: formStatus,
+            role: formRole,
+            createdAt: (existingPre as PreRegisteredMember)?.createdAt || serverTimestamp(),
+          }));
+        } else {
+          const userRef = doc(db, 'users', selectedMemberId);
+          const existingData = users.find((u) => u.userId === selectedMemberId);
+          await setDoc(userRef, stripUndefined({
+            ...existingData,
+            userId: selectedMemberId,
+            nama: resolvedName,
+            email: emailKey,
+            kelas: resolvedClass,
+            regu: resolvedSquad,
+            status: formStatus,
+            role: formRole,
+            createdAt: existingData?.createdAt || serverTimestamp(),
+          }));
+        }
       } else {
         await setDoc(doc(db, 'pre_registered', emailKey), {
           nama: resolvedName,
@@ -171,6 +198,11 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
   const handleDeleteMember = async (userId: string) => {
     if (!window.confirm('Apakah Anda yakin ingin menghapus data anggota pramuka ini?')) return;
     try {
+      if (isPreRegisteredUserId(userId)) {
+        const email = userId.slice('pre:'.length);
+        await deleteDoc(doc(db, 'pre_registered', email));
+        return;
+      }
       await deleteDoc(doc(db, 'users', userId));
     } catch (err) {
       handleFirestoreError(err, OperationType.DELETE, `users/${userId}`);
@@ -180,6 +212,10 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
   const handleToggleStatus = async (user: UserProfile) => {
     const nextStatus = user.status === UserStatus.AKTIF ? UserStatus.NON_AKTIF : UserStatus.AKTIF;
     try {
+      if (isPreRegisteredUserId(user.userId)) {
+        await updateDoc(doc(db, 'pre_registered', user.email), { status: nextStatus });
+        return;
+      }
       await updateDoc(doc(db, 'users', user.userId), { status: nextStatus });
     } catch (err) {
       handleFirestoreError(err, OperationType.UPDATE, `users/${user.userId}`);
@@ -252,10 +288,14 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
 
       {tab === 'crud_purna' && (
         <div className="space-y-4 sm:space-y-6">
+          <PurnaApplicationsPanel
+            applications={purnaApplications}
+            loading={loadingPurna}
+          />
           <MemberDirectory
             role={UserRole.PURNA}
             members={filteredPurna}
-            loading={loadingMembers}
+            loading={loadingPurnaDirectory}
             search={memberSearchPurna}
             onSearchChange={setMemberSearchPurna}
             filterRegu="ALL"
@@ -268,8 +308,8 @@ export function AdminKelolaPage({ tab, onTabChange, users, loadingMembers }: Adm
             onEdit={handleOpenEditModal}
             onDelete={handleDeleteMember}
             onToggleStatus={handleToggleStatus}
+            compact
           />
-          <PurnaApplicationsPanel />
         </div>
       )}
 

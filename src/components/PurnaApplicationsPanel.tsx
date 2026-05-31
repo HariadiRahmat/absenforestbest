@@ -3,16 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  collection,
   doc,
-  onSnapshot,
   setDoc,
   updateDoc,
   deleteDoc,
   serverTimestamp,
-  query,
 } from 'firebase/firestore';
 import {
   Award,
@@ -24,38 +21,18 @@ import {
   Trash2,
   Loader2,
 } from 'lucide-react';
-import { db, logFirestoreError } from '../lib/firebase';
+import { db } from '../lib/firebase';
 import { OperationType, PurnaApprovalStatus, PurnaRegistration, UserRole, UserStatus } from '../types';
-import { normalizePurnaRegistration } from '../lib/purnaRegistration';
 import { Alert } from './ui/Alert';
 
-export function PurnaApplicationsPanel() {
-  const [applications, setApplications] = useState<PurnaRegistration[]>([]);
-  const [loading, setLoading] = useState(true);
+interface PurnaApplicationsPanelProps {
+  applications: PurnaRegistration[];
+  loading: boolean;
+}
+
+export function PurnaApplicationsPanel({ applications, loading }: PurnaApplicationsPanelProps) {
   const [processingEmail, setProcessingEmail] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const q = query(collection(db, 'purna_registrations'));
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        const list: PurnaRegistration[] = [];
-        snap.forEach((d) => {
-          list.push(normalizePurnaRegistration(d.id, d.data() as Record<string, unknown>));
-        });
-        list.sort((a, b) => (b.submittedAt?.seconds ?? 0) - (a.submittedAt?.seconds ?? 0));
-        setApplications(list);
-        setLoading(false);
-      },
-      (err) => {
-        logFirestoreError(err, OperationType.LIST, 'purna_registrations');
-        setError('Gagal memuat pendaftaran purna.');
-        setLoading(false);
-      }
-    );
-    return () => unsub();
-  }, []);
 
   const handleApprove = async (app: PurnaRegistration) => {
     setProcessingEmail(app.email);
@@ -110,7 +87,7 @@ export function PurnaApplicationsPanel() {
   };
 
   const handleDelete = async (app: PurnaRegistration) => {
-    if (!window.confirm(`Hapus data pendaftaran ${app.email}?`)) return;
+    if (!window.confirm(`Hapus arsip pendaftaran ${app.email}?`)) return;
     setProcessingEmail(app.email);
     try {
       await deleteDoc(doc(db, 'purna_registrations', app.email));
@@ -123,7 +100,8 @@ export function PurnaApplicationsPanel() {
   };
 
   const pending = applications.filter((a) => a.approvalStatus === PurnaApprovalStatus.PENDING);
-  const others = applications.filter((a) => a.approvalStatus !== PurnaApprovalStatus.PENDING);
+  const rejected = applications.filter((a) => a.approvalStatus === PurnaApprovalStatus.REJECTED);
+  const reviewItems = [...pending, ...rejected];
 
   return (
     <div className="scout-card p-4 sm:p-6">
@@ -133,9 +111,9 @@ export function PurnaApplicationsPanel() {
             <Award className="w-5 h-5 text-bento-dark" />
           </div>
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-bento-text">Pendaftaran Purna</h3>
+            <h3 className="text-base font-bold text-bento-text">Tinjau Pendaftaran</h3>
             <p className="text-xs sm:text-sm text-bento-muted mt-0.5 leading-relaxed">
-              Tinjau pendaftaran dari landing page. Setujui agar purna bisa login.
+              Setujui atau tolak pendaftaran baru. Yang disetujui otomatis masuk Daftar Purna di bawah.
             </p>
           </div>
         </div>
@@ -145,14 +123,14 @@ export function PurnaApplicationsPanel() {
       {error && <Alert variant="error" title="Perhatian" message={error} className="mb-4" onDismiss={() => setError(null)} />}
 
       {loading ? (
-        <div className="text-center py-14 text-bento-muted text-sm">
+        <div className="text-center py-10 text-bento-muted text-sm">
           <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2" />
           Memuat pendaftaran...
         </div>
-      ) : applications.length === 0 ? (
-        <div className="text-center py-14 text-bento-muted text-sm">
+      ) : reviewItems.length === 0 ? (
+        <div className="text-center py-10 text-bento-muted text-sm">
           <Award className="w-10 h-10 stroke-1 mx-auto mb-3 opacity-30" />
-          Belum ada pendaftaran purna masuk.
+          Tidak ada pendaftaran yang perlu ditinjau.
         </div>
       ) : (
         <div className="space-y-6">
@@ -169,18 +147,19 @@ export function PurnaApplicationsPanel() {
                     processing={processingEmail === app.email}
                     onApprove={() => handleApprove(app)}
                     onReject={() => handleReject(app)}
-                    onDelete={() => handleDelete(app)}
                   />
                 ))}
               </div>
             </section>
           )}
 
-          {others.length > 0 && (
+          {rejected.length > 0 && (
             <section>
-              <h4 className="text-xs font-bold uppercase tracking-wider text-bento-muted mb-3">Riwayat</h4>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-bento-muted mb-3">
+                Ditolak ({rejected.length})
+              </h4>
               <div className="space-y-3">
-                {others.map((app) => (
+                {rejected.map((app) => (
                   <ApplicationCard
                     key={app.email}
                     app={app}
@@ -214,11 +193,7 @@ function ApplicationCard({
   readonly?: boolean;
 }) {
   const statusBadge =
-    app.approvalStatus === PurnaApprovalStatus.APPROVED ? (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-lime-50 text-lime-800 border border-lime-200">
-        <CheckCircle className="w-3 h-3" /> Disetujui
-      </span>
-    ) : app.approvalStatus === PurnaApprovalStatus.REJECTED ? (
+    app.approvalStatus === PurnaApprovalStatus.REJECTED ? (
       <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-rose-50 text-rose-800 border border-rose-100">
         <XCircle className="w-3 h-3" /> Ditolak
       </span>

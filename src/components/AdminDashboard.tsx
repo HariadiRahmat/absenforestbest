@@ -21,6 +21,7 @@ export function AdminDashboard() {
     attendanceToday,
     historicalAttendance,
     purnaApplications,
+    preRegistered,
     activeQR,
     rulesError,
     loadingQR,
@@ -99,7 +100,10 @@ export function AdminDashboard() {
             tab={kelolaTab}
             onTabChange={setKelolaTab}
             users={users}
+            preRegistered={preRegistered}
+            purnaApplications={purnaApplications}
             loadingMembers={loadingMembers}
+            loadingPurna={loadingPurna}
           />
         )}
       </div>

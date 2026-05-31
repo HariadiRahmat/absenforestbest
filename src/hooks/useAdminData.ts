@@ -17,8 +17,10 @@ import {
   AttendanceRecord,
   QRCodeConfig,
   PurnaRegistration,
+  PreRegisteredMember,
   OperationType,
 } from '../types';
+import { normalizePreRegistered } from '../lib/normalizePreRegistered';
 
 export function useAdminData() {
   const todayStr = getTodayStr();
@@ -27,6 +29,7 @@ export function useAdminData() {
   const [attendanceToday, setAttendanceToday] = useState<AttendanceRecord[]>([]);
   const [historicalAttendance, setHistoricalAttendance] = useState<AttendanceRecord[]>([]);
   const [purnaApplications, setPurnaApplications] = useState<PurnaRegistration[]>([]);
+  const [preRegistered, setPreRegistered] = useState<PreRegisteredMember[]>([]);
   const [activeQR, setActiveQR] = useState<QRCodeConfig | null>(null);
   const [rulesError, setRulesError] = useState<string | null>(null);
   const [loadingQR, setLoadingQR] = useState(false);
@@ -152,11 +155,26 @@ export function useAdminData() {
       }
     );
 
+    const unsubPreRegistered = onSnapshot(
+      query(collection(db, 'pre_registered')),
+      (snapshot) => {
+        const list: PreRegisteredMember[] = [];
+        snapshot.forEach((d) => {
+          list.push(normalizePreRegistered(d.id, d.data() as Record<string, unknown>));
+        });
+        setPreRegistered(list);
+      },
+      (err) => {
+        logFirestoreError(err, OperationType.LIST, 'pre_registered');
+      }
+    );
+
     return () => {
       unsubUsers();
       unsubAttend();
       unsubQR();
       unsubPurna();
+      unsubPreRegistered();
     };
   }, [todayStr, syncActiveCheckin, autoGenerateTodayQR]);
 
@@ -190,6 +208,7 @@ export function useAdminData() {
     attendanceToday,
     historicalAttendance,
     purnaApplications,
+    preRegistered,
     activeQR,
     rulesError,
     loadingQR,

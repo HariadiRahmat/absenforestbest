@@ -7,6 +7,7 @@ import React from 'react';
 import { Edit2, Plus, Search, Trash2, Users, CheckCircle2, Clock } from 'lucide-react';
 import { UserProfile, UserRole, UserStatus } from '../types';
 import { isPurnaProfileComplete } from '../lib/purnaProfile';
+import { isPreRegisteredUserId } from '../lib/purnaDirectory';
 
 export interface MemberDirectoryProps {
   role: UserRole;
@@ -24,6 +25,7 @@ export interface MemberDirectoryProps {
   onEdit: (member: UserProfile) => void;
   onDelete: (userId: string) => void;
   onToggleStatus: (member: UserProfile) => void;
+  compact?: boolean;
 }
 
 const copy = {
@@ -45,10 +47,10 @@ const copy = {
   },
   [UserRole.PURNA]: {
     title: 'Daftar Purna',
-    subtitle: 'Akun purna terdaftar. Ubah role dari Anggota/Pembina atau pre-register email baru.',
+    subtitle: 'Purna disetujui & terdaftar — termasuk yang belum login.',
     searchPlaceholder: 'Cari nama atau email purna...',
-    addLabel: 'Tambah Purna',
-    emptyLabel: 'Belum ada purna yang cocok dengan pencarian.',
+    addLabel: 'Tambah',
+    emptyLabel: 'Belum ada purna terdaftar.',
     showClassSquadFilters: false,
   },
 };
@@ -76,29 +78,35 @@ export function MemberDirectory({
   onEdit,
   onDelete,
   onToggleStatus,
+  compact = false,
 }: MemberDirectoryProps) {
   const labels = copy[role];
+  const cardClass = compact ? 'scout-card p-3 sm:p-4' : 'scout-card p-4 sm:p-6';
+  const headGap = compact ? 'mb-3' : 'mb-5';
+  const emptyPy = compact ? 'py-8' : 'py-14';
 
   return (
-    <div className="scout-card p-4 sm:p-6">
-      <div className="scout-section-head">
+    <div className={cardClass}>
+      <div className={`scout-section-head ${compact ? '!items-center' : ''}`}>
         <div className="min-w-0">
-          <h3 className="text-base font-bold text-bento-text">{labels.title}</h3>
-          <p className="text-xs sm:text-sm text-bento-muted mt-0.5 leading-relaxed">{labels.subtitle}</p>
+          <h3 className={`font-bold text-bento-text ${compact ? 'text-sm' : 'text-base'}`}>{labels.title}</h3>
+          {!compact && (
+            <p className="text-xs sm:text-sm text-bento-muted mt-0.5 leading-relaxed">{labels.subtitle}</p>
+          )}
         </div>
         {!loading && members.length > 0 && (
           <span className="scout-count-badge">{members.length}</span>
         )}
       </div>
 
-      <div className="flex flex-col gap-2.5 mb-5">
-        <div className="relative w-full">
+      <div className={`flex flex-col gap-2 ${headGap} ${compact ? 'sm:flex-row sm:items-center' : ''}`}>
+        <div className={`relative w-full ${compact ? 'sm:flex-1' : ''}`}>
           <span className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <Search className="h-4 w-4 text-bento-muted" />
+            <Search className={`text-bento-muted ${compact ? 'h-3.5 w-3.5' : 'h-4 w-4'}`} />
           </span>
           <input
             type="text"
-            className="scout-input"
+            className={`scout-input ${compact ? 'h-9 text-xs' : ''}`}
             placeholder={labels.searchPlaceholder}
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
@@ -130,21 +138,37 @@ export function MemberDirectory({
           </div>
         ) : null}
 
-        <button type="button" onClick={onAdd} className="h-11 w-full scout-btn-primary text-sm">
+        <button
+          type="button"
+          onClick={onAdd}
+          className={`scout-btn-primary text-sm ${compact ? 'h-9 px-4 shrink-0' : 'h-11 w-full'}`}
+        >
           <Plus className="w-4 h-4" />
           {labels.addLabel}
         </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-14 text-bento-muted text-sm">
-          <div className="w-6 h-6 border-2 border-bento-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+        <div className={`text-center text-bento-muted text-sm ${emptyPy}`}>
+          <div className="w-5 h-5 border-2 border-bento-primary border-t-transparent rounded-full animate-spin mx-auto mb-2" />
           Memuat data...
         </div>
       ) : members.length === 0 ? (
-        <div className="text-center py-14 text-bento-muted text-sm px-4">
-          <Users className="w-10 h-10 stroke-1 mx-auto mb-3 opacity-30" />
-          <p className="leading-relaxed">{labels.emptyLabel}</p>
+        <div className={`text-center text-bento-muted text-sm px-4 ${emptyPy}`}>
+          <Users className={`stroke-1 mx-auto mb-2 opacity-30 ${compact ? 'w-8 h-8' : 'w-10 h-10'}`} />
+          <p className="leading-relaxed text-xs">{labels.emptyLabel}</p>
+        </div>
+      ) : compact ? (
+        <div className="divide-y divide-bento-border border border-bento-border rounded-xl overflow-hidden">
+          {members.map((member) => (
+            <CompactPurnaRow
+              key={member.userId}
+              member={member}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              onToggleStatus={onToggleStatus}
+            />
+          ))}
         </div>
       ) : (
         <>
@@ -301,6 +325,15 @@ function MemberCard({
 }
 
 function PurnaProfileBadge({ member }: { member: UserProfile }) {
+  if (isPreRegisteredUserId(member.userId)) {
+    return (
+      <span className="inline-flex items-center gap-1 scout-chip text-sky-800 bg-sky-50 border-sky-200">
+        <Clock className="w-3 h-3" />
+        Belum login
+      </span>
+    );
+  }
+
   const complete = isPurnaProfileComplete(member);
   return complete ? (
     <span className="inline-flex items-center gap-1 scout-chip text-lime-800 bg-lime-50 border-lime-200">
@@ -312,5 +345,51 @@ function PurnaProfileBadge({ member }: { member: UserProfile }) {
       <Clock className="w-3 h-3" />
       Menunggu biodata
     </span>
+  );
+}
+
+function CompactPurnaRow({
+  member,
+  onEdit,
+  onDelete,
+  onToggleStatus,
+}: {
+  member: UserProfile;
+  onEdit: (m: UserProfile) => void;
+  onDelete: (userId: string) => void;
+  onToggleStatus: (m: UserProfile) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 px-3 py-2.5 bg-white hover:bg-bento-soft/40 transition">
+      <div className="w-8 h-8 rounded-lg bg-bento-highlight text-bento-primary flex items-center justify-center text-[11px] font-bold shrink-0">
+        {getInitials(member.nama)}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold text-bento-text truncate">{member.nama}</p>
+        <p className="text-[10px] text-bento-muted truncate font-mono">{member.email}</p>
+      </div>
+      <div className="hidden sm:block shrink-0">
+        <PurnaProfileBadge member={member} />
+      </div>
+      <StatusBadge member={member} onToggle={() => onToggleStatus(member)} />
+      <div className="flex items-center gap-1 shrink-0">
+        <button
+          type="button"
+          onClick={() => onEdit(member)}
+          className="p-1.5 hover:bg-bento-highlight text-bento-primary transition rounded-lg cursor-pointer"
+          title="Ubah"
+        >
+          <Edit2 className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => onDelete(member.userId)}
+          className="p-1.5 hover:bg-rose-50 text-rose-700 transition rounded-lg cursor-pointer"
+          title="Hapus"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      </div>
+    </div>
   );
 }
