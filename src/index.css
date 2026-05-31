@@ -369,6 +369,31 @@ html, body {
   box-shadow: 0 0 0 3px rgb(59 130 246 / 0.12);
 }
 
+.scout-date-field {
+  position: relative;
+  width: 100%;
+}
+
+.scout-date-input {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.scout-date-input::-webkit-date-and-time-value {
+  text-align: left;
+  min-width: calc(100% - 2rem);
+}
+
+.scout-date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+}
+
 .scout-action-row {
   display: grid;
   grid-template-columns: 1fr 1fr;

@@ -191,9 +191,17 @@ export function PurnaRegistrationLanding({ onBack }: PurnaRegistrationLandingPro
 
           <div className="space-y-1">
             <label htmlFor="reg-tgl" className={labelClass}>Tanggal Lahir</label>
-            <div className="relative">
-              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-bento-muted" />
-              <input id="reg-tgl" type="date" className={`${inputClass} pl-10`} value={tanggalLahir} onChange={(e) => setTanggalLahir(e.target.value)} required disabled={submitting} />
+            <div className="scout-date-field">
+              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-bento-muted pointer-events-none z-10" />
+              <input
+                id="reg-tgl"
+                type="date"
+                className={`${inputClass} scout-date-input pl-10`}
+                value={tanggalLahir}
+                onChange={(e) => setTanggalLahir(e.target.value)}
+                required
+                disabled={submitting}
+              />
             </div>
           </div>
 

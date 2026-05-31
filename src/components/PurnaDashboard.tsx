@@ -196,7 +196,7 @@ export function PurnaDashboard() {
                     <input className={inputClass} value={form.nama} onChange={(e) => setForm({ ...form, nama: e.target.value })} required />
                   </Field>
                   <Field label="Tanggal Lahir" icon={Calendar}>
-                    <input type="date" className={inputClass} value={form.tanggalLahir} onChange={(e) => setForm({ ...form, tanggalLahir: e.target.value })} required />
+                    <input type="date" className={`${inputClass} scout-date-input`} value={form.tanggalLahir} onChange={(e) => setForm({ ...form, tanggalLahir: e.target.value })} required />
                   </Field>
                   <Field label="Alamat" icon={MapPin}>
                     <textarea className={`${inputClass} min-h-[80px]`} value={form.alamat} onChange={(e) => setForm({ ...form, alamat: e.target.value })} required />
