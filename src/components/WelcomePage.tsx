@@ -60,22 +60,24 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
 
       <main className="scout-welcome-body">
         <div className="max-w-lg mx-auto w-full">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted mb-3 sm:mb-4">
-            Layanan platform
-          </p>
+          <div className="hidden sm:block">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-bento-muted mb-3 sm:mb-4">
+              Layanan platform
+            </p>
 
-          <div className="scout-welcome-services">
-            {services.map(({ icon: Icon, title, accent }) => (
-              <div key={title} className="scout-welcome-service">
-                <div className={`scout-welcome-service-icon ${accent}`}>
-                  <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="scout-welcome-services">
+              {services.map(({ icon: Icon, title, accent }) => (
+                <div key={title} className="scout-welcome-service">
+                  <div className={`scout-welcome-service-icon ${accent}`}>
+                    <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </div>
+                  <span className="scout-welcome-service-label">{title}</span>
                 </div>
-                <span className="scout-welcome-service-label">{title}</span>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          <div className="border-t border-bento-border pt-4 sm:pt-5">
+          <div className="pt-2 sm:pt-0 sm:border-t sm:border-bento-border sm:pt-5">
             <div className="text-center mb-4">
               <p className="text-[15px] sm:text-base font-bold text-bento-text">Masuk ke akun</p>
               <p className="text-xs text-bento-muted mt-1">
