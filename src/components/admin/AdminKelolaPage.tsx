@@ -12,6 +12,7 @@ import { db, handleFirestoreError } from '../../lib/firebase';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { stripUndefined } from '../../lib/firestoreUtils';
 import { deleteMemberRecords, syncRegistrationApprovedRole } from '../../lib/memberAdminOps';
+import { isProtectedAdminAccount, PROTECTED_ADMIN_MESSAGE } from '../../lib/protectedAdmin';
 import { OperationType } from '../../types';
 
 export type AdminKelolaTab = 'crud_anggota' | 'crud_pembina' | 'crud_purna' | 'purna_docs';
@@ -124,6 +125,10 @@ export function AdminKelolaPage({
   };
 
   const handleFormRoleChange = (role: UserRole) => {
+    if (isEditMode && isProtectedAdminAccount(formEmail) && role !== UserRole.ADMIN) {
+      setFormError(PROTECTED_ADMIN_MESSAGE);
+      return;
+    }
     setFormRole(role);
     setFormContextRole(role);
     if (role === UserRole.ADMIN && (!formClass.trim() || formClass === 'Purna')) {
@@ -159,6 +164,11 @@ export function AdminKelolaPage({
 
     try {
       const emailKey = formEmail.trim().toLowerCase();
+
+      if (isEditMode && isProtectedAdminAccount(emailKey) && formRole !== UserRole.ADMIN) {
+        setFormError(PROTECTED_ADMIN_MESSAGE);
+        return;
+      }
 
       if (isEditMode && selectedMemberId) {
         if (isPreRegisteredUserId(selectedMemberId)) {
@@ -210,6 +220,10 @@ export function AdminKelolaPage({
   };
 
   const handleDeleteMember = async (member: UserProfile) => {
+    if (isProtectedAdminAccount(member.email)) {
+      window.alert(PROTECTED_ADMIN_MESSAGE);
+      return;
+    }
     if (!window.confirm(`Hapus data ${member.nama} (${member.email})?`)) return;
     try {
       await deleteMemberRecords(member, users);
@@ -277,6 +291,7 @@ export function AdminKelolaPage({
           onEdit={handleOpenEditModal}
           onDelete={handleDeleteMember}
           onToggleStatus={handleToggleStatus}
+          isMemberProtected={(member) => isProtectedAdminAccount(member.email)}
         />
       )}
 
@@ -297,6 +312,7 @@ export function AdminKelolaPage({
           onEdit={handleOpenEditModal}
           onDelete={handleDeleteMember}
           onToggleStatus={handleToggleStatus}
+          isMemberProtected={(member) => isProtectedAdminAccount(member.email)}
         />
       )}
 
@@ -319,6 +335,7 @@ export function AdminKelolaPage({
             onToggleStatus={handleToggleStatus}
           onView={setViewPurnaMember}
           compact
+          isMemberProtected={(member) => isProtectedAdminAccount(member.email)}
         />
       )}
 
@@ -347,6 +364,7 @@ export function AdminKelolaPage({
           onFormSquadChange={setFormSquad}
           onFormStatusChange={setFormStatus}
           onFormRoleChange={handleFormRoleChange}
+          lockRole={isEditMode && isProtectedAdminAccount(formEmail)}
         />
       )}
     </div>

@@ -20,6 +20,7 @@ interface MemberCrudModalProps {
   onFormSquadChange: (value: string) => void;
   onFormStatusChange: (value: UserStatus) => void;
   onFormRoleChange: (value: UserRole) => void;
+  lockRole?: boolean;
 }
 
 export function MemberCrudModal({
@@ -40,6 +41,7 @@ export function MemberCrudModal({
   onFormSquadChange,
   onFormStatusChange,
   onFormRoleChange,
+  lockRole = false,
 }: MemberCrudModalProps) {
   const activeRole = isEditMode ? formRole : formContextRole;
   const title = isEditMode
@@ -124,14 +126,20 @@ export function MemberCrudModal({
               </label>
               <select
                 id="form-scout-role"
-                className="w-full px-3 py-3 border border-bento-border rounded-xl text-xs font-semibold bg-bento-soft text-bento-text"
+                className="w-full px-3 py-3 border border-bento-border rounded-xl text-xs font-semibold bg-bento-soft text-bento-text disabled:opacity-60 disabled:cursor-not-allowed"
                 value={formRole}
                 onChange={(e) => onFormRoleChange(e.target.value as UserRole)}
+                disabled={lockRole}
               >
                 <option value={UserRole.ANGGOTA}>Anggota</option>
                 <option value={UserRole.ADMIN}>Pembina</option>
                 <option value={UserRole.PURNA}>Purna</option>
               </select>
+              {lockRole && (
+                <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-1">
+                  Akun admin utama — role tidak dapat diubah.
+                </p>
+              )}
             </div>
           )}
 

@@ -31,6 +31,15 @@ service cloud.firestore {
         || authEmail() == 'admin@gmail.com';
     }
 
+    function isPrimaryProtectedAdminEmail(email) {
+      return email.lower() == 'hariadirahmat2003@gmail.com';
+    }
+
+    function isProtectedUsersDoc(userId) {
+      return exists(/databases/$(database)/documents/users/$(userId))
+        && isPrimaryProtectedAdminEmail(get(/databases/$(database)/documents/users/$(userId)).data.email);
+    }
+
     function isAdmin() {
       return isSignedIn() && (
         isBootstrapEmail()
@@ -130,10 +139,17 @@ service cloud.firestore {
           && incoming().nama is string && incoming().nama.size() <= 100
           && incoming().kelas is string && incoming().kelas.size() <= 20
           && incoming().regu is string && incoming().regu.size() <= 30)
-        || isAdmin()
+        || (isAdmin() && !isProtectedUsersDoc(userId))
+        || (isAdmin()
+          && isProtectedUsersDoc(userId)
+          && incoming().userId == existing().userId
+          && incoming().email == existing().email
+          && incoming().role == existing().role
+          && incoming().status == existing().status
+          && incoming().createdAt == existing().createdAt)
       );
 
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() && !isProtectedUsersDoc(userId);
     }
 
     function hasValidOptionalLocation() {
@@ -206,8 +222,10 @@ service cloud.firestore {
     match /pre_registered/{email} {
       allow get: if isAdmin() || (isSignedIn() && authEmail() == email.lower());
       allow list: if isAdmin();
-      allow create, update: if isAdmin();
-      allow delete: if isAdmin() || (isSignedIn() && authEmail() == email.lower());
+      allow create, update: if isAdmin()
+        && (!isPrimaryProtectedAdminEmail(email) || incoming().role == 'admin');
+      allow delete: if (isAdmin() && !isPrimaryProtectedAdminEmail(email))
+        || (isSignedIn() && authEmail() == email.lower());
     }
 
     function validMemberRegistrationFields(regEmail) {
@@ -256,7 +274,7 @@ service cloud.firestore {
           && incoming().approvalStatus == 'pending'
           && memberNotPreRegistered(email)
           && validMemberRegistrationFields(email));
-      allow delete: if isAdmin();
+      allow delete: if isAdmin() && !isPrimaryProtectedAdminEmail(email);
     }
 
     // ── Deny everything else (must be last) ──────────────────────────────

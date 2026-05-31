@@ -1,6 +1,7 @@
 import { deleteDoc, doc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import { isPreRegisteredUserId } from './purnaDirectory';
+import { isProtectedAdminAccount, PROTECTED_ADMIN_MESSAGE } from './protectedAdmin';
 import { UserProfile, UserRole } from '../types';
 
 /** Hapus semua jejak member (users, pre_registered, purna_registrations). */
@@ -8,6 +9,10 @@ export async function deleteMemberRecords(
   member: UserProfile,
   users: UserProfile[]
 ): Promise<void> {
+  if (isProtectedAdminAccount(member.email)) {
+    throw new Error(PROTECTED_ADMIN_MESSAGE);
+  }
+
   const email = member.email.toLowerCase();
 
   const loggedIn = users.find((u) => u.email.toLowerCase() === email);
@@ -24,6 +29,10 @@ export async function deleteMemberRecords(
 
 /** Sinkronkan approvedRole di purna_registrations setelah admin ubah role. */
 export async function syncRegistrationApprovedRole(email: string, role: UserRole): Promise<void> {
+  if (isProtectedAdminAccount(email) && role !== UserRole.ADMIN) {
+    throw new Error(PROTECTED_ADMIN_MESSAGE);
+  }
+
   const regRef = doc(db, 'purna_registrations', email.toLowerCase());
   const regSnap = await getDoc(regRef);
   if (!regSnap.exists()) return;

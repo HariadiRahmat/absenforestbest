@@ -27,6 +27,7 @@ export interface MemberDirectoryProps {
   onToggleStatus: (member: UserProfile) => void;
   compact?: boolean;
   onView?: (member: UserProfile) => void;
+  isMemberProtected?: (member: UserProfile) => boolean;
 }
 
 const copy = {
@@ -81,8 +82,10 @@ export function MemberDirectory({
   onToggleStatus,
   compact = false,
   onView,
+  isMemberProtected,
 }: MemberDirectoryProps) {
   const labels = copy[role];
+  const isProtected = (member: UserProfile) => isMemberProtected?.(member) ?? false;
   const cardClass = compact ? 'scout-card p-3 sm:p-4' : 'scout-card p-4 sm:p-6';
   const headGap = compact ? 'mb-3' : 'mb-5';
   const emptyPy = compact ? 'py-8' : 'py-14';
@@ -170,6 +173,7 @@ export function MemberDirectory({
               onEdit={onEdit}
               onDelete={onDelete}
               onToggleStatus={onToggleStatus}
+              protectedMember={isProtected(member)}
             />
           ))}
         </div>
@@ -184,6 +188,7 @@ export function MemberDirectory({
                 onEdit={onEdit}
                 onDelete={onDelete}
                 onToggleStatus={onToggleStatus}
+                protectedMember={isProtected(member)}
               />
             ))}
           </div>
@@ -255,6 +260,7 @@ export function MemberDirectory({
                       >
                         <Edit2 className="w-3.5 h-3.5" />
                       </button>
+                      {!isProtected(member) && (
                       <button
                         type="button"
                         onClick={() => onDelete(member)}
@@ -263,6 +269,7 @@ export function MemberDirectory({
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -293,12 +300,14 @@ function MemberCard({
   onEdit,
   onDelete,
   onToggleStatus,
+  protectedMember = false,
 }: {
   member: UserProfile;
   role: UserRole;
   onEdit: (m: UserProfile) => void;
   onDelete: (member: UserProfile) => void;
   onToggleStatus: (m: UserProfile) => void;
+  protectedMember?: boolean;
 }) {
   const avatarBg =
     role === UserRole.ADMIN
@@ -343,10 +352,12 @@ function MemberCard({
           <Edit2 className="w-3.5 h-3.5" />
           Ubah
         </button>
+        {!protectedMember && (
         <button type="button" onClick={() => onDelete(member)} className="scout-action-btn scout-action-btn-danger">
           <Trash2 className="w-3.5 h-3.5" />
           Hapus
         </button>
+        )}
       </div>
     </div>
   );
@@ -386,12 +397,14 @@ function CompactPurnaRow({
   onEdit,
   onDelete,
   onToggleStatus,
+  protectedMember = false,
 }: {
   member: UserProfile;
   onView?: (m: UserProfile) => void;
   onEdit: (m: UserProfile) => void;
   onDelete: (member: UserProfile) => void;
   onToggleStatus: (m: UserProfile) => void;
+  protectedMember?: boolean;
 }) {
   return (
     <div className="flex items-center gap-2 px-3 py-2.5 bg-white hover:bg-bento-soft/40 transition">
@@ -425,6 +438,7 @@ function CompactPurnaRow({
         >
           <Edit2 className="w-3.5 h-3.5" />
         </button>
+        {!protectedMember && (
         <button
           type="button"
           onClick={() => onDelete(member)}
@@ -433,6 +447,7 @@ function CompactPurnaRow({
         >
           <Trash2 className="w-3.5 h-3.5" />
         </button>
+        )}
       </div>
     </div>
   );
