@@ -17,17 +17,9 @@ export async function deleteMemberRecords(
     await deleteDoc(doc(db, 'users', member.userId));
   }
 
-  const preRef = doc(db, 'pre_registered', email);
-  const preSnap = await getDoc(preRef);
-  if (preSnap.exists()) {
-    await deleteDoc(preRef);
-  }
-
-  const regRef = doc(db, 'purna_registrations', email);
-  const regSnap = await getDoc(regRef);
-  if (regSnap.exists()) {
-    await deleteDoc(regRef);
-  }
+  // deleteDoc tidak butuh izin get; hapus langsung (doc tidak ada = no-op).
+  await deleteDoc(doc(db, 'pre_registered', email));
+  await deleteDoc(doc(db, 'purna_registrations', email));
 }
 
 /** Sinkronkan approvedRole di purna_registrations setelah admin ubah role. */

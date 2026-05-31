@@ -204,7 +204,7 @@ service cloud.firestore {
 
     // ── Pre-registration ───────────────────────────────────────────────────
     match /pre_registered/{email} {
-      allow get: if isSignedIn() && authEmail() == email.lower();
+      allow get: if isAdmin() || (isSignedIn() && authEmail() == email.lower());
       allow list: if isAdmin();
       allow create, update: if isAdmin();
       allow delete: if isAdmin() || (isSignedIn() && authEmail() == email.lower());
