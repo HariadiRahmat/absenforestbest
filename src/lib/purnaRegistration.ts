@@ -27,3 +27,6 @@ export function normalizePurnaRegistration(
 }
 
 export type PurnaGateStatus = 'pending' | 'rejected' | null;
+
+/** @deprecated Use AuthGateStatus from authGate.ts */
+export type { AuthGateStatus } from './authGate';

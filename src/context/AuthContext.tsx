@@ -20,12 +20,13 @@ import { normalizeUserProfile } from '../lib/normalizeUserProfile';
 import { shouldFallbackToRedirect, shouldUseRedirectSignIn, getGoogleSignInErrorMessage } from '../lib/authErrors';
 import { UserProfile, UserRole, UserStatus, OperationType, PurnaApprovalStatus } from '../types';
 import { isPurnaProfileComplete, PurnaProfileFormData } from '../lib/purnaProfile';
-import { normalizePurnaRegistration, PurnaGateStatus } from '../lib/purnaRegistration';
+import { normalizePurnaRegistration } from '../lib/purnaRegistration';
+import { AuthGateStatus } from '../lib/authGate';
 
 interface AuthContextType {
   currentUser: FirebaseUser | null;
   userProfile: UserProfile | null;
-  purnaGate: PurnaGateStatus;
+  authGate: AuthGateStatus;
   loading: boolean;
   authError: string | null;
   clearAuthError: () => void;
@@ -111,7 +112,7 @@ async function migratePreRegisteredProfile(user: FirebaseUser, userRef: ReturnTy
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<FirebaseUser | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [purnaGate, setPurnaGate] = useState<PurnaGateStatus>(null);
+  const [authGate, setAuthGate] = useState<AuthGateStatus>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const profileUnsubRef = useRef<(() => void) | null>(null);
@@ -131,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (!user) {
         setUserProfile(null);
-        setPurnaGate(null);
+        setAuthGate(null);
         setLoading(false);
         return;
       }
@@ -144,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         async (docSnap) => {
           if (docSnap.exists()) {
             setUserProfile(normalizeUserProfile(user.uid, docSnap.data() as Record<string, unknown>));
-            setPurnaGate(null);
+            setAuthGate(null);
             setLoading(false);
             return;
           }
@@ -167,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
             const migrated = await migratePreRegisteredProfile(user, userRef);
             if (migrated) {
-              setPurnaGate(null);
+              setAuthGate(null);
               return;
             }
 
@@ -177,19 +178,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               if (regSnap.exists()) {
                 const reg = normalizePurnaRegistration(emailKey, regSnap.data() as Record<string, unknown>);
                 if (reg.approvalStatus === PurnaApprovalStatus.PENDING) {
-                  setPurnaGate('pending');
+                  setAuthGate('purna_pending');
                   setUserProfile(null);
                   return;
                 }
                 if (reg.approvalStatus === PurnaApprovalStatus.REJECTED) {
-                  setPurnaGate('rejected');
+                  setAuthGate('purna_rejected');
                   setUserProfile(null);
                   return;
                 }
               }
             }
 
-            setPurnaGate(null);
+            setAuthGate('unregistered');
             setUserProfile(null);
           } catch (err) {
             console.error('Failed to resolve user profile:', err);
@@ -198,7 +199,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 'Firestore Rules belum di-deploy ke Firebase. Buka Firebase Console → Firestore → Rules, salin isi firestore.rules dari repo, lalu klik Publish.'
               );
             }
-            setPurnaGate(null);
+            setAuthGate(null);
             setUserProfile(null);
           } finally {
             setLoading(false);
@@ -252,8 +253,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const registerProfile = async (nama: string, kelas: string, regu: string) => {
     if (!currentUser) throw new Error('No authenticated user found');
 
-    const userRef = doc(db, 'users', currentUser.uid);
     const emailKey = currentUser.email?.toLowerCase() ?? '';
+    const preSnap = emailKey ? await getDoc(doc(db, 'pre_registered', emailKey)) : null;
+
+    if (!preSnap?.exists()) {
+      throw new Error('Email belum terdaftar oleh Pembina. Hubungi Pembina untuk mendapatkan akses.');
+    }
+
     const regSnap = emailKey ? await getDoc(doc(db, 'purna_registrations', emailKey)) : null;
     if (regSnap?.exists()) {
       const reg = normalizePurnaRegistration(emailKey, regSnap.data() as Record<string, unknown>);
@@ -262,26 +268,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const preSnap = emailKey ? await getDoc(doc(db, 'pre_registered', emailKey)) : null;
-    const pre = preSnap?.exists() ? preSnap.data() : null;
+    const pre = preSnap.data();
 
     const isAdmin = isBootstrapAdmin(currentUser.email);
+    const userRef = doc(db, 'users', currentUser.uid);
     const newProfile: UserProfile = {
       userId: currentUser.uid,
-      nama,
+      nama: pre.nama || nama,
       email: emailKey,
-      kelas: isAdmin ? 'Pembina' : kelas,
-      regu: isAdmin ? 'Laksana' : regu,
-      status: pre?.status ?? UserStatus.AKTIF,
-      role: isAdmin ? UserRole.ADMIN : (pre?.role ?? UserRole.ANGGOTA),
+      kelas: isAdmin ? 'Pembina' : (pre.kelas || kelas),
+      regu: isAdmin ? 'Laksana' : (pre.regu || regu),
+      status: pre.status ?? UserStatus.AKTIF,
+      role: isAdmin
+        ? UserRole.ADMIN
+        : pre.role === UserRole.PURNA || pre.role === 'purna'
+          ? UserRole.PURNA
+          : pre.role === UserRole.ADMIN || pre.role === 'admin'
+            ? UserRole.ADMIN
+            : UserRole.ANGGOTA,
       createdAt: serverTimestamp(),
     };
 
     try {
       await setDoc(userRef, newProfile);
-      if (preSnap?.exists()) {
-        await deleteDoc(doc(db, 'pre_registered', emailKey));
-      }
+      await deleteDoc(doc(db, 'pre_registered', emailKey));
     } catch (error) {
       handleFirestoreError(error, OperationType.CREATE, `users/${currentUser.uid}`);
     }
@@ -338,7 +348,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       value={{
         currentUser,
         userProfile,
-        purnaGate,
+        authGate,
         loading,
         authError,
         clearAuthError: () => setAuthError(null),

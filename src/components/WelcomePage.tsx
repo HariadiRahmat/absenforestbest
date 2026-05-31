@@ -53,7 +53,7 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
             ForestBest Scout
           </h1>
           <p className="text-[13px] sm:text-base text-bento-muted mt-2 leading-relaxed max-w-[280px] sm:max-w-sm mx-auto px-1">
-            Platform untuk anggota aktif, pembina, dan purna.
+            Platform untuk anggota aktif, pembina, dan purna — akses hanya setelah didaftarkan Pembina.
           </p>
         </div>
       </header>
@@ -81,7 +81,7 @@ export function WelcomePage({ loginError, authError, onLogin, onPurnaRegister }:
             <div className="text-center mb-4">
               <p className="text-[15px] sm:text-base font-bold text-bento-text">Masuk ke akun</p>
               <p className="text-xs text-bento-muted mt-1">
-                Untuk anggota, pembina, dan purna terdaftar
+                Anggota & Pembina: email harus sudah di-pre-register oleh Pembina
               </p>
             </div>
 

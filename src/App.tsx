@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ProfileForm } from './components/ProfileForm';
+import { UnregisteredGate } from './components/UnregisteredGate';
 import { PurnaRegistrationLanding } from './components/PurnaRegistrationLanding';
 import { PurnaPendingGate } from './components/PurnaPendingGate';
 import { PurnaDashboard } from './components/PurnaDashboard';
@@ -14,13 +14,14 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { AnggotaDashboard } from './components/AnggotaDashboard';
 import { WelcomePage } from './components/WelcomePage';
 import { UserRole, UserStatus } from './types';
+import { isPurnaAuthGate } from './lib/authGate';
 import { isPurnaProfileComplete } from './lib/purnaProfile';
 import { Shield, LogOut } from 'lucide-react';
 import { getGoogleSignInErrorMessage } from './lib/authErrors';
 import { Alert } from './components/ui/Alert';
 
 function ScoutAppContent() {
-  const { currentUser, userProfile, purnaGate, loading, authError, clearAuthError, signInWithGoogle, logout } = useAuth();
+  const { currentUser, userProfile, authGate, loading, authError, clearAuthError, signInWithGoogle, logout } = useAuth();
   const [loginError, setLoginError] = React.useState<string | null>(null);
   const [publicView, setPublicView] = React.useState<'login' | 'purna-register'>('login');
 
@@ -61,12 +62,24 @@ function ScoutAppContent() {
     );
   }
 
-  if (currentUser && purnaGate) {
-    return <PurnaPendingGate status={purnaGate} />;
+  if (currentUser && authGate === 'unregistered') {
+    return <UnregisteredGate />;
+  }
+
+  if (currentUser && isPurnaAuthGate(authGate)) {
+    return <PurnaPendingGate status={authGate} />;
   }
 
   if (currentUser && !userProfile) {
-    return <ProfileForm />;
+    return (
+      <div id="scout-global-loader" className="min-h-screen bg-bento-bg flex flex-col justify-center items-center">
+        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center border border-bento-border shadow-sm">
+          <Shield className="w-7 h-7 text-bento-primary animate-pulse" />
+        </div>
+        <p className="mt-4 text-sm font-semibold text-bento-text">ForestBest Scout</p>
+        <p className="text-xs text-bento-muted mt-1">Menyiapkan profil...</p>
+      </div>
+    );
   }
 
   if (userProfile && userProfile.status === UserStatus.NON_AKTIF) {

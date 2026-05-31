@@ -7,15 +7,15 @@ import React from 'react';
 import { Clock, XCircle, LogOut } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Alert } from './ui/Alert';
-import type { PurnaGateStatus } from '../lib/purnaRegistration';
+import type { AuthGateStatus } from '../lib/authGate';
 
 interface PurnaPendingGateProps {
-  status: Exclude<PurnaGateStatus, null>;
+  status: Extract<AuthGateStatus, 'purna_pending' | 'purna_rejected'>;
 }
 
 export function PurnaPendingGate({ status }: PurnaPendingGateProps) {
   const { logout, currentUser } = useAuth();
-  const isPending = status === 'pending';
+  const isPending = status === 'purna_pending';
 
   return (
     <div className="min-h-screen bg-bento-bg flex flex-col justify-center py-8 px-4 pb-[max(2rem,env(safe-area-inset-bottom))]">
